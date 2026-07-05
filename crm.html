@@ -41,6 +41,7 @@
   .tone-emerald { background:#ecfdf5; color:#065f46; }
   .tone-orange  { background:#fff7ed; color:#c2410c; }
   .tone-rose    { background:#fff1f2; color:#be123c; }
+  .tone-fuchsia { background:#fdf4ff; color:#a21caf; }
   .tone-slate   { background:#f1f5f9; color:#475569; }
 
   /* ── Navbar ── */
@@ -298,7 +299,7 @@
     <button class="btn-icon btn-settings" @click="showConfig=true" title="ตั้งค่า URL">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
     </button>
-    <a href="https://pondjeloy.github.io/LG_Subscribe_Calculator_Jun2026/" target="_blank" class="btn-text">
+    <a href="https://pondjeloy.github.io/LG_Subscribe_Calculator_Jul2026/" target="_blank" class="btn-text">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7h7M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 15h.01M12 15h.01M15.5 15h.01"/></svg>
       คำนวณ
     </a>
@@ -334,7 +335,7 @@
         <b>วิธีแก้:</b><br/>
         1. Apps Script → Run → testConnection → Authorize<br/>
         2. Deploy → Manage Deployments → Edit → New version → Deploy<br/>
-        3. ตรวจสอบว่า SPREADSHEET_ID ถูกต้อง
+        3. ตรวจสอบ SPREADSHEET_ID = 1wEiFHLZKq9ZKEEeuiNEvap-dCzzgrQl0t0nFtt7ZfOI
       </div>
       <button class="mt-3 h-9 px-4 rounded-full text-[13px] font-semibold ring-1 ring-rose-200 text-rose-700 hover:bg-rose-50 transition" @click="fetchData()">ลองใหม่</button>
     </div>
@@ -360,7 +361,7 @@
             <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100 gap-px mt-2">
               <template x-for="sd in sourceDefs" :key="sd.key">
                 <span class="h-full rounded-full opacity-80" :class="sd.barClass"
-                  :style="'width:'+( customers.filter(c=>c.source===sd.key).length / Math.max(customers.length,1)*100 )+'%'"></span>
+                  :style="'width:'+( customers.filter(c=>normalizeSource(c.source)===sd.key).length / Math.max(customers.length,1)*100 )+'%'"></span>
               </template>
             </div>
             <div class="mt-1.5 text-[11.5px] text-slate-400">กระจาย <span x-text="sourceDefs.length"></span> แหล่ง</div>
@@ -608,7 +609,7 @@
                       </span>
                     </span>
                   </th>
-<th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400 min-w-[200px] cursor-pointer select-none" @click="setSort('lastNote')">
+                  <th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400 min-w-[200px] cursor-pointer select-none" @click="setSort('lastNote')">
                     <span class="inline-flex items-center gap-1">บันทึกล่าสุด
                       <span class="inline-flex flex-col -space-y-1">
                         <svg width="7" height="5" viewBox="0 0 8 6" :class="sortCol==='lastNote'&&sortDir==='asc'?'text-[var(--accent)]':'text-slate-300'" fill="currentColor"><path d="M4 0l4 6H0z"/></svg>
@@ -777,7 +778,7 @@
             </button>
           </div>
           <div class="flex items-center gap-2 mt-3 flex-wrap">
-            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold" :class="srcToneClass(selectedCustomer.source)" x-text="selectedCustomer.source"></span>
+            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold" :class="srcToneClass(selectedCustomer.source)" x-text="srcLabel(selectedCustomer.source)"></span>
             <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold" :class="statusToneClass(selectedCustomer.status)">
               <span class="h-1.5 w-1.5 rounded-full" :class="statusDotClass(selectedCustomer.status)"></span>
               <span x-text="statusLabel(selectedCustomer.status)||'(ยังไม่ระบุ)'"></span>
@@ -912,11 +913,13 @@
 </div>
 
 <script>
-const CRM_BUILD       = '19 มิ.ย. 69 v6';
+const CRM_BUILD       = '5 ก.ค. 69 v7';
 const LOGIN_PASSWORD    = 'pond1234';
 const LOGIN_SESSION_KEY = 'lgCrmLoggedIn';
 const API_URL_KEY       = 'lgCrmApiUrl';
-const CACHE_KEY         = 'lgCrmCache';
+const CACHE_KEY         = 'lgCrmCache_v7';
+const SOURCE_ALIASES    = {'Meta Densu':'Meta Densu July','Meta Credit':'Meta Credit July'};
+function normalizeSource(src) { return SOURCE_ALIASES[src] || src || ''; }
 const HL_KEY            = 'lgDashHL';
 const PROMOTER          = 'POND';
 const CACHE_TTL         = 30 * 60 * 1000; // 30 min
@@ -1038,12 +1041,13 @@ function app() {
     ],
 
     sourceDefs: [
-      {key:'Meta Densu',                   short:'Meta',    label:'Meta Densu',    toneClass:'tone-violet', barClass:'bg-violet-400', img:'assets/channels/meta-densu.png'},
-      {key:'Meta Credit',                  short:'Meta CC', label:'Meta Credit',   toneClass:'tone-amber',  barClass:'bg-amber-400', img:'assets/channels/meta-credit.png'},
+      {key:'Meta Densu July',             short:'Meta',    label:'Meta Densu July', toneClass:'tone-violet', barClass:'bg-violet-400', img:'assets/channels/meta-densu.png'},
+      {key:'Meta Credit July',            short:'Meta CC', label:'Meta Credit July', toneClass:'tone-amber',  barClass:'bg-amber-400', img:'assets/channels/meta-credit.png'},
       {key:'Lead Subscribe Lg.com',        short:'LG.com',  label:'Subscribe LG',  toneClass:'tone-indigo', barClass:'bg-indigo-400', img:'assets/channels/subscribe-lg.png'},
       {key:'Lead LG Success',              short:'Success', label:'LG Success',    toneClass:'tone-emerald',barClass:'bg-emerald-500', img:'assets/channels/lg-success.png'},
       {key:'Lead Consult',                 short:'Consult', label:'Lead Consult',  toneClass:'tone-orange', barClass:'bg-orange-400', img:'assets/channels/lead-consult.png'},
       {key:'Lead Subscribe POP UP Braner', short:'POP UP',  label:'POP UP Braner', toneClass:'tone-rose',   barClass:'bg-rose-400', img:'assets/channels/pop-up.png'},
+      {key:'POP UP Bannar',                short:'Banner',  label:'POP UP Banner', toneClass:'tone-fuchsia',barClass:'bg-fuchsia-400', img:'assets/channels/pop-up.png'},
     ],
 
     /* ── Init ── */
@@ -1141,7 +1145,7 @@ function app() {
         (c.phone||'').includes(q) ||
         (c.email||'').toLowerCase().includes(q)
       );
-      if (this.filterSource)   list = list.filter(c => c.source === this.filterSource);
+      if (this.filterSource)   list = list.filter(c => normalizeSource(c.source) === this.filterSource);
       if (this.filterStatusGroup?.length) list = list.filter(c => this.filterStatusGroup.includes(c.status));
       else if (this.filterStatus === '__unset__') list = list.filter(c => !c.status);
       else if (this.filterStatus) list = list.filter(c => c.status === this.filterStatus);
@@ -1200,7 +1204,7 @@ function app() {
       return tags;
     },
 
-    get sourceSummary() { return this.sourceDefs.map(sd => ({...sd, count:this.customers.filter(c=>c.source===sd.key).length})); },
+    get sourceSummary() { return this.sourceDefs.map(sd => ({...sd, count:this.customers.filter(c=>normalizeSource(c.source)===sd.key).length})); },
 
     /* ── Filter methods ── */
     setSort(col) {
@@ -1287,8 +1291,9 @@ function app() {
       return {'':'— ยังไม่ระบุ','Called':'Called','Follow up':'Follow up','Unqualified':'Unqualified',
               'Called buy denied':'Called but denied','No Credit Card':'No Credit Card','Purchased':'Purchased'}[s] ?? (s||'— ยังไม่ระบุ');
     },
-    srcToneClass(src) { const d=this.sourceDefs.find(s=>s.key===src); return d?d.toneClass:'tone-slate'; },
-    srcShort(src)     { const d=this.sourceDefs.find(s=>s.key===src); return d?d.short:src; },
+    srcToneClass(src) { const d=this.sourceDefs.find(s=>s.key===normalizeSource(src)); return d?d.toneClass:'tone-slate'; },
+    srcShort(src)     { const d=this.sourceDefs.find(s=>s.key===normalizeSource(src)); return d?d.short:normalizeSource(src)||src; },
+    srcLabel(src)     { const d=this.sourceDefs.find(s=>s.key===normalizeSource(src)); return d?d.label:normalizeSource(src)||src; },
     paymentStyle(val) {
       if (!val) return '';
       const v = val.toLowerCase();
