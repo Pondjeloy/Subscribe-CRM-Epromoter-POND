@@ -631,7 +631,7 @@
                       :class="[selectedCustomer&&selectedCustomer.id===c.id?'!bg-[var(--accent-tint)]':'', hlTrClass(c)]">
                     <td class="pl-5 pr-2 h-[34px] text-[12px] tabular-nums text-slate-400 font-medium" x-text="c.id"></td>
                     <td class="px-3">
-                      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap" :class="srcToneClass(c.source)" x-text="srcShort(c.source)"></span>
+                      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap" :class="srcToneClass(c.source)" x-text="displaySource(c)"></span>
                     </td>
                     <td class="px-3 max-w-[300px]">
                       <div class="flex items-center gap-2 min-w-0">
@@ -696,7 +696,7 @@
                 </span>
               </div>
               <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="srcToneClass(c.source)" x-text="srcShort(c.source)"></span>
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="srcToneClass(c.source)" x-text="displaySource(c)"></span>
                 <span class="text-[12px] font-semibold text-slate-700 tabular-nums" x-text="fmtPhone(c.phone)"></span>
                 <span x-show="c.province" class="text-[11.5px] text-slate-400" x-text="'📍'+c.province"></span>
               </div>
@@ -778,7 +778,10 @@
             </button>
           </div>
           <div class="flex items-center gap-2 mt-3 flex-wrap">
-            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold" :class="srcToneClass(selectedCustomer.source)" x-text="srcLabel(selectedCustomer.source)"></span>
+            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold" :class="srcToneClass(selectedCustomer.source)" x-text="displaySource(selectedCustomer)"></span>
+            <div x-show="selectedCustomer?.altRows?.length" class="mt-1 text-[12px] text-amber-700 bg-amber-50 rounded-lg px-2.5 py-1.5">
+              รวมหลีดเบอร์ซ้ำจาก: <span x-text="selectedCustomer.sourceMerged"></span>
+            </div>
             <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold" :class="statusToneClass(selectedCustomer.status)">
               <span class="h-1.5 w-1.5 rounded-full" :class="statusDotClass(selectedCustomer.status)"></span>
               <span x-text="statusLabel(selectedCustomer.status)||'(ยังไม่ระบุ)'"></span>
@@ -913,13 +916,54 @@
 </div>
 
 <script>
-const CRM_BUILD       = '5 ก.ค. 69 v7';
+const CRM_BUILD       = '5 ก.ค. 69 v8';
 const LOGIN_PASSWORD    = 'pond1234';
 const LOGIN_SESSION_KEY = 'lgCrmLoggedIn';
 const API_URL_KEY       = 'lgCrmApiUrl';
-const CACHE_KEY         = 'lgCrmCache_v7';
-const SOURCE_ALIASES    = {'Meta Densu':'Meta Densu July','Meta Credit':'Meta Credit July'};
-function normalizeSource(src) { return SOURCE_ALIASES[src] || src || ''; }
+const CACHE_KEY         = 'lgCrmCache_v8';
+const SOURCE_PRIORITY   = {'Meta Densu July':1,'Meta Credit July':2,'Lead Subscribe Lg.com':3,'Lead LG Success':4,'Lead Consult':5,'POP UP Bannar':6,'Lead Subscribe POP UP Braner':7};
+function normalizeSource(src) { return src || ''; }
+function phoneKey(phone) {
+  let d = String(phone||'').replace(/\D/g,'');
+  if (d.length >= 11 && d.startsWith('66')) d = '0' + d.slice(2);
+  if (d.length === 9) d = '0' + d;
+  return d.length >= 9 ? d : '';
+}
+function pickPreferredCustomer(a, b) {
+  const pa = SOURCE_PRIORITY[a.source] || 50, pb = SOURCE_PRIORITY[b.source] || 50;
+  if (pa !== pb) return pa < pb ? a : b;
+  const sa = String(a.status||'').length, sb = String(b.status||'').length;
+  if (sa !== sb) return sa > sb ? a : b;
+  return (a.row||0) >= (b.row||0) ? a : b;
+}
+function dedupeCustomersByPhone(list) {
+  const byPhone = new Map(), noPhone = [], out = [];
+  for (const c of (list||[])) {
+    const key = phoneKey(c.phone);
+    if (!key) { noPhone.push({...c}); continue; }
+    if (!byPhone.has(key)) { byPhone.set(key, {p:{...c}, alts:[]}); continue; }
+    const bucket = byPhone.get(key);
+    const winner = pickPreferredCustomer(bucket.p, c);
+    const loser = winner === bucket.p ? c : bucket.p;
+    bucket.p = {...winner};
+    bucket.alts.push({source:loser.source, row:loser.row, status:loser.status});
+  }
+  let id = 1;
+  for (const bucket of byPhone.values()) {
+    const p = bucket.p;
+    p.id = id++;
+    if (bucket.alts.length) {
+      p.altRows = bucket.alts;
+      p.sourceMerged = p.source;
+      for (const alt of bucket.alts) {
+        if (!p.sourceMerged.includes(alt.source)) p.sourceMerged += ' · ' + alt.source;
+      }
+    }
+    out.push(p);
+  }
+  for (const c of noPhone) { c.id = id++; out.push(c); }
+  return out;
+}
 const HL_KEY            = 'lgDashHL';
 const PROMOTER          = 'POND';
 const CACHE_TTL         = 30 * 60 * 1000; // 30 min
@@ -1117,7 +1161,7 @@ function app() {
       try {
         const json = await jsonpCall(this.apiUrl, {action:'getCustomers', promoter:PROMOTER});
         if (!json.success) throw new Error(json.error||'API error');
-        const raw = json.data || [];
+        const raw = dedupeCustomersByPhone(json.data || []);
         this.customers = raw.map(c => ({...c, parsedNotes: this._parseNotes(c.notes||'')}));
         this._frozenRows = null; this.sortCol = 'id'; this.sortDir = 'desc'; this.page = 1;
         const n = new Date();
@@ -1145,7 +1189,7 @@ function app() {
         (c.phone||'').includes(q) ||
         (c.email||'').toLowerCase().includes(q)
       );
-      if (this.filterSource)   list = list.filter(c => normalizeSource(c.source) === this.filterSource);
+      if (this.filterSource)   list = list.filter(c => this.customerMatchesSource(c, this.filterSource));
       if (this.filterStatusGroup?.length) list = list.filter(c => this.filterStatusGroup.includes(c.status));
       else if (this.filterStatus === '__unset__') list = list.filter(c => !c.status);
       else if (this.filterStatus) list = list.filter(c => c.status === this.filterStatus);
@@ -1204,7 +1248,7 @@ function app() {
       return tags;
     },
 
-    get sourceSummary() { return this.sourceDefs.map(sd => ({...sd, count:this.customers.filter(c=>normalizeSource(c.source)===sd.key).length})); },
+    get sourceSummary() { return this.sourceDefs.map(sd => ({...sd, count:this.customers.filter(c=>this.customerMatchesSource(c, sd.key)).length})); },
 
     /* ── Filter methods ── */
     setSort(col) {
@@ -1291,6 +1335,17 @@ function app() {
       return {'':'— ยังไม่ระบุ','Called':'Called','Follow up':'Follow up','Unqualified':'Unqualified',
               'Called buy denied':'Called but denied','No Credit Card':'No Credit Card','Purchased':'Purchased'}[s] ?? (s||'— ยังไม่ระบุ');
     },
+    customerMatchesSource(c, key) {
+      if (!c || !key) return false;
+      if (c.source === key) return true;
+      if ((c.sourceMerged||'').includes(key)) return true;
+      return (c.altRows||[]).some(r => r.source === key);
+    },
+    displaySource(c) {
+      if (!c) return '—';
+      if (c.sourceMerged) return c.sourceMerged.split(' · ').map(s => this.srcShort(s)).join(' + ');
+      return this.srcShort(c.source);
+    },
     srcToneClass(src) { const d=this.sourceDefs.find(s=>s.key===normalizeSource(src)); return d?d.toneClass:'tone-slate'; },
     srcShort(src)     { const d=this.sourceDefs.find(s=>s.key===normalizeSource(src)); return d?d.short:normalizeSource(src)||src; },
     srcLabel(src)     { const d=this.sourceDefs.find(s=>s.key===normalizeSource(src)); return d?d.label:normalizeSource(src)||src; },
@@ -1340,8 +1395,11 @@ function app() {
       this._frozenRows = [...this.paginated];
       this.savingStatus = true; this.saveMsg = '';
       try {
-        const j = await jsonpCall(this.apiUrl, {action:'updateStatus', sheet:this.selectedCustomer.source, row:this.selectedCustomer.row, status:this.pendingStatus, promoter:PROMOTER});
-        if (!j.success) throw new Error(j.error||'บันทึกไม่สำเร็จ');
+        const targets = [{source:this.selectedCustomer.source, row:this.selectedCustomer.row}, ...(this.selectedCustomer.altRows||[])];
+        for (const t of targets) {
+          const j = await jsonpCall(this.apiUrl, {action:'updateStatus', sheet:t.source, row:t.row, status:this.pendingStatus, promoter:PROMOTER});
+          if (!j.success) throw new Error(j.error||'บันทึกไม่สำเร็จ');
+        }
         const ns = this.pendingStatus;
         this.selectedCustomer.status = ns;
         const idx = this.customers.findIndex(c => c.id===this.selectedCustomer.id);
