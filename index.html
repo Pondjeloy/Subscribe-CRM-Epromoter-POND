@@ -1172,7 +1172,7 @@
               <div class="text-[14px] text-slate-800 font-medium" x-text="selectedCustomer.paymentChannel"></div>
             </div>
             <div x-show="isMetaSource(selectedCustomer.source) && housingLabel(selectedCustomer.housingType)">
-              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">ที่อยู่</div>
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">ที่อยู่ <span class="normal-case font-semibold text-slate-300">(D)</span></div>
               <div class="text-[14px] text-slate-800 font-medium" x-text="housingLabel(selectedCustomer.housingType)"></div>
             </div>
             <div x-show="isMetaSource(selectedCustomer.source) && selectedCustomer.convenientDate">
@@ -1266,7 +1266,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '24 ส.ค. 69 v48 · Meta housing type';
+const CRM_BUILD       = '24 ส.ค. 69 v48 · Meta housing D';
 const CACHE_SCHEMA    = 'v20';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1486,7 +1486,7 @@ function app() {
     metaColumnLegend: [
       {col:'A', label:'ช่องทางการชำระเงิน'},
       {col:'C', label:'จังหวัด'},
-      {col:'·', label:'ประเภทที่อยู่ (บ้านเดี่ยว / คอนโด)'},
+      {col:'D', label:'ประเภทที่อยู่ (บ้านเดี่ยว / คอนโด)'},
       {col:'E', label:'สินค้า'},
       {col:'F', label:'วันที่สะดวก'},
       {col:'G', label:'ช่วงเวลาในการติดต่อ'},
@@ -1509,11 +1509,11 @@ function app() {
 
     sourceDefs: [
       {key:'Meta Densu Aug',              short:'Meta ส.ค.', label:'Meta Densu Aug', toneClass:'tone-violet', barClass:'bg-violet-400', img:'assets/channels/meta-densu.png',
-        columnHelp:'A=ชำระ · C=จังหวัด · ที่อยู่=บ้านเดี่ยว/คอนโด · E=สินค้า · F=วันที่ · G=ช่วงเวลา · H=ชื่อ · J=เบอร์ · N=สถานะ'},
+        columnHelp:'A=ชำระ · C=จังหวัด · D=ที่อยู่(บ้านเดี่ยว/คอนโด) · E=สินค้า · F=วันที่ · G=ช่วงเวลา · H=ชื่อ · J=เบอร์ · N=สถานะ'},
       {key:'Meta Densu',                  short:'Meta เก่า', label:'Meta Densu (เก่า)', toneClass:'tone-fuchsia', barClass:'bg-fuchsia-400', img:'assets/channels/meta-densu.png',
         columnHelp:'ชีต legacy มิ.ย. · M=สถานะ · F=ชื่อ · I=เบอร์'},
       {key:'Meta ITAX',                   short:'Meta ITAX', label:'Meta ITAX', toneClass:'tone-sky', barClass:'bg-sky-400', img:'assets/channels/meta-itax.png',
-        columnHelp:'A=ชำระ · C=จังหวัด · ที่อยู่=บ้านเดี่ยว/คอนโด · E=สินค้า · F=วันที่ · G=เวลาติดต่อ · H=ชื่อ · I=อายุ · J=เบอร์ · K=Email · N=สถานะ · O=Epromoter'},
+        columnHelp:'A=ชำระ · C=จังหวัด · D=ที่อยู่(บ้านเดี่ยว/คอนโด) · E=สินค้า · F=วันที่ · G=เวลาติดต่อ · H=ชื่อ · I=อายุ · J=เบอร์ · K=Email · N=สถานะ · O=Epromoter'},
       {key:'Lead Subscribe Lg.com',        short:'LG.com',  label:'Subscribe LG',  toneClass:'tone-indigo', barClass:'bg-indigo-400', img:'assets/channels/subscribe-lg.png'},
       {key:'Lead LG Success',              short:'Success', label:'LG Success',    toneClass:'tone-emerald',barClass:'bg-emerald-500', img:'assets/channels/lg-success.png'},
       {key:'Lead Consult',                 short:'Consult', label:'Lead Consult',  toneClass:'tone-orange', barClass:'bg-orange-400', img:'assets/channels/lead-consult.png'},

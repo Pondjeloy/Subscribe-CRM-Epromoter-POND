@@ -130,8 +130,8 @@ function doGet(e) {
 function getSheetConfig(name) {
   var cfg = {
 
-    // Meta Densu Aug: A=ชำระ C=จังหวัด E=สินค้า F=วันที่สะดวก G=ช่วงเวลาติดต่อ
-    // H=ชื่อ I=อายุ J=เบอร์ K=email N=สถานะ O=Epromoter P=หมายเหตุ
+    // Meta Densu Aug: A=ชำระ C=จังหวัด D=ที่อยู่(บ้านเดี่ยว/คอนโด) E=สินค้า
+    // F=วันที่สะดวก G=ช่วงเวลาติดต่อ H=ชื่อ I=อายุ J=เบอร์ K=email N=สถานะ O=Epromoter P=หมายเหตุ
     'Meta Densu Aug': {
       picCol:14, statusCol:13, notesCol:15,
       parse: function(row, disp) { return parseMetaDensuJulyRow(row, disp); }
@@ -149,7 +149,7 @@ function getSheetConfig(name) {
     },
 
     // Meta ITAX: คอลัมน์เดียวกับ Meta Densu Aug
-    // A=ชำระ C=จังหวัด E=สินค้า F=วันที่สะดวก G=เวลาติดต่อ
+    // A=ชำระ C=จังหวัด D=ที่อยู่(บ้านเดี่ยว/คอนโด) E=สินค้า F=วันที่สะดวก G=เวลาติดต่อ
     // H=ชื่อ I=อายุ J=เบอร์ K=Email N=สถานะ O=Epromoter P=หมายเหตุ
     'Meta ITAX': {
       picCol:14, statusCol:13, notesCol:15,
@@ -531,7 +531,7 @@ function getCustomers(promoter) {
 
       var fields = cfg.parse(row, disp ? disp[i] : row);
       if (!fields.name && !fields.phone) continue;
-      if (housingCol >= 0 && row.length > housingCol) {
+      if (!fields.housingType && housingCol >= 0 && row.length > housingCol) {
         fields.housingType = normalizeHousingType(
           cleanDisplay(row[housingCol], disp && disp[i] ? disp[i][housingCol] : row[housingCol])
         );
@@ -804,8 +804,9 @@ function parseMetaDensuLegacyRow(row, disp) {
 }
 
 // ── Meta Densu July / Meta ITAX parse ─────────────────
-// A=ช่องทางชำระ C=จังหวัด E=สินค้า F=วันที่สะดวก G=ช่วงเวลาติดต่อ
-// H=ชื่อ I=อายุ J=เบอร์ K=email · N=สถานะ O=Epromoter P=หมายเหตุ
+// A=ช่องทางชำระ C=จังหวัด D=ที่อยู่(บ้านเดี่ยว/คอนโด) E=สินค้า
+// F=วันที่สะดวก G=ช่วงเวลาติดต่อ H=ชื่อ I=อายุ J=เบอร์ K=email
+// N=สถานะ O=Epromoter P=หมายเหตุ
 function parseMetaDensuJulyRow(row, disp) {
   var ageRaw = calcAge(row[8]);
   var age = (String(ageRaw).replace(/\D/g,'').length >= 9) ? '' : ageRaw;
@@ -818,6 +819,7 @@ function parseMetaDensuJulyRow(row, disp) {
     convenientDate: cleanDisplay(row[5], disp&&disp[5]),
     paymentChannel: clean(row[0]),
     province:       clean(row[2]),
+    housingType:    normalizeHousingType(clean(row[3])),
     productType:    clean(row[4]),
     lineId:         ''
   };
