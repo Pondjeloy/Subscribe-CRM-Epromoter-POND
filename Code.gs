@@ -366,11 +366,16 @@ function normalizeHousingType(v) {
   var s = clean(v);
   if (!s) return '';
   var n = s.replace(/\s+/g, '').toLowerCase();
-  if (/คอนโด|condo|apartment|อพาร์ท/.test(n)) return 'คอนโด';
-  if (/บ้านเดี่ยว|บ้านพัก|ทาวน์โฮม|ทาวน์เฮาส์|townhouse|townhome/.test(n)) return 'บ้านเดี่ยว';
-  if (n === 'บ้าน' || n === 'house' || n === 'home') return 'บ้านเดี่ยว';
-  if (s.length <= 40 && n.indexOf('บ้าน') !== -1 && n.indexOf('คอนโด') === -1) return 'บ้านเดี่ยว';
+  if (n === 'condo' || n === 'apartment' || n === 'คอนโดมิเนียม') return 'คอนโด';
+  if (n === 'house' || n === 'home' || n === 'บ้าน') return 'บ้านเดี่ยว';
   return s;
+}
+
+function isHousingValue(v) {
+  var s = normalizeHousingType(v);
+  if (!s) return false;
+  var n = s.replace(/\s+/g, '').toLowerCase();
+  return /คอนโด|condo|บ้านเดี่ยว|บ้านพัก|ทาวน์|house|home|^บ้าน$/.test(n);
 }
 
 function findHousingCol(headers, data) {
@@ -389,8 +394,7 @@ function findHousingCol(headers, data) {
   for (c = 0; c < maxCols; c++) {
     hits = 0;
     for (r = 1; r < sample; r++) {
-      v = normalizeHousingType(data[r][c]);
-      if (v === 'บ้านเดี่ยว' || v === 'คอนโด') hits++;
+      if (isHousingValue(data[r][c])) hits++;
     }
     if (hits >= 3) return c;
   }

@@ -1025,8 +1025,8 @@
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="srcToneClass(c.source)" x-text="displaySource(c)"></span>
                 <span class="text-[12px] font-semibold text-slate-700 tabular-nums" x-text="fmtPhone(c.phone)"></span>
                 <span x-show="c.province" class="text-[11.5px] text-slate-400" x-text="'📍'+c.province"></span>
-                <span x-show="housingLabel(c.housingType)" class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                      :class="housingLabel(c.housingType)==='คอนโด' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-800'"
+                <span x-show="housingLabel(c.housingType)" class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-normal max-w-[14rem]"
+                      :class="housingIsCondo(c.housingType) ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-800'"
                       x-text="housingLabel(c.housingType)"></span>
               </div>
               <div x-show="c.convenientDate || c.contactTime" class="text-[11px] text-slate-400 mb-1">
@@ -1173,7 +1173,7 @@
             </div>
             <div x-show="isMetaSource(selectedCustomer.source) && housingLabel(selectedCustomer.housingType)">
               <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">ที่อยู่ <span class="normal-case font-semibold text-slate-300">(D)</span></div>
-              <div class="text-[14px] text-slate-800 font-medium" x-text="housingLabel(selectedCustomer.housingType)"></div>
+              <div class="text-[14px] text-slate-800 font-medium leading-snug" x-text="housingLabel(selectedCustomer.housingType)"></div>
             </div>
             <div x-show="isMetaSource(selectedCustomer.source) && selectedCustomer.convenientDate">
               <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">วันที่สะดวก <span class="normal-case font-semibold text-slate-300">(F)</span></div>
@@ -1266,8 +1266,8 @@
 </div>
 
 <script>
-const CRM_BUILD       = '24 ส.ค. 69 v48 · Meta housing D';
-const CACHE_SCHEMA    = 'v20';
+const CRM_BUILD       = '24 ส.ค. 69 v49 · housing full label';
+const CACHE_SCHEMA    = 'v21';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
 const LOGIN_SESSION_KEY = 'lgCrmLoggedIn';
@@ -1775,10 +1775,14 @@ function app() {
         const v = this.housingLabel(c.housingType);
         if (v) counts[v] = (counts[v] || 0) + 1;
       }
-      const order = { 'บ้านเดี่ยว': 0, 'คอนโด': 1 };
       return Object.entries(counts)
         .map(([value, count]) => ({ value, count }))
-        .sort((a, b) => (order[a.value] ?? 9) - (order[b.value] ?? 9) || a.value.localeCompare(b.value, 'th'));
+        .sort((a, b) => {
+          const ac = this.housingIsCondo(a.value) ? 2 : 1;
+          const bc = this.housingIsCondo(b.value) ? 2 : 1;
+          if (ac !== bc) return ac - bc;
+          return a.value.length - b.value.length || a.value.localeCompare(b.value, 'th');
+        });
     },
     get activeFilterTags() {
       const tags = [];
@@ -1935,13 +1939,15 @@ function app() {
     countWithContactTime()    { return this.customers.filter(c => this._normField(c.contactTime)).length; },
     countWithHousing()        { return this.customers.filter(c => this.housingLabel(c.housingType)).length; },
     housingLabel(v) {
-      const s = String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase();
-      if (!s) return '';
-      if (/คอนโด|condo|apartment|อพาร์ท/.test(s)) return 'คอนโด';
-      if (/บ้านเดี่ยว|บ้านพัก|ทาวน์โฮม|ทาวน์เฮาส์|townhouse|townhome/.test(s)) return 'บ้านเดี่ยว';
-      if (s === 'บ้าน' || s === 'house' || s === 'home') return 'บ้านเดี่ยว';
-      if (s.length <= 40 && s.indexOf('บ้าน') !== -1 && s.indexOf('คอนโด') === -1) return 'บ้านเดี่ยว';
-      return String(v || '').trim();
+      const raw = String(v == null ? '' : v).trim();
+      if (!raw) return '';
+      const s = raw.replace(/\s+/g, '').toLowerCase();
+      if (s === 'condo' || s === 'apartment' || s === 'คอนโดมิเนียม') return 'คอนโด';
+      if (s === 'house' || s === 'home' || s === 'บ้าน') return 'บ้านเดี่ยว';
+      return raw;
+    },
+    housingIsCondo(v) {
+      return /คอนโด|condo|apartment|อพาร์ท/.test(String(v == null ? '' : v).toLowerCase());
     },
     countByStatus(val) {
       if (val === '__unset__') return this.customers.filter(c => !c.status).length;
