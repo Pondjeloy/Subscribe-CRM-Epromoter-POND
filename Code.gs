@@ -39,6 +39,14 @@
 //
 //  [Meta ที่อยู่] อ่านคอลัมน์ประเภทที่อยู่จากหัวตาราง (บ้านเดี่ยว / คอนโด)
 //  ถ้าไม่มีหัวที่ตรง ไล่ค่าในชีต Meta ที่เป็นบ้านเดี่ยว/คอนโด แล้วแปะเป็น housingType
+//
+//  [Sell out Wuttichai.P] ฐานลูกค้าปิดการขายของ POND — ไม่ใช่หลีด
+//  แท็บจริง: Sell out Wuttichai.P
+//  A=No. B=Date C=OP/PO D=Category E=Model F=Quantity G=Amount
+//  H=Policy Name I=Installation Date J=Customer K=tel L=Province
+//  M=E-Promoter (WUTTICHAI.P) N=Remark
+//  ไม่มีคอลัมน์ Status — ตั้ง Purchased อัตโนมัติ (ยกเลิก/ปฏิเสธเครดิตแยกสถานะ)
+//  ดึงเฉพาะ promoter=POND (กัน CRM WUTTICHAI N. ดึงชีตนี้)
 // ════════════════════════════════════════════════════════
 
 var SPREADSHEET_ID = '1aiyNPYJHy3TA0NRj7vNUBgZs_htLiPJ3VALGeL_nLA0'; // ส.ค. 2569
@@ -48,7 +56,8 @@ var PROMOTER       = 'POND';
 var SHEET_NAMES = [
   'Meta Densu Aug','Meta Densu','Meta ITAX',
   'Lead Subscribe Lg.com','Lead LG Success','Lead Consult',
-  'Lead Subscribe POP UP Braner'
+  'Lead Subscribe POP UP Braner',
+  'Sell out Wuttichai.P'
 ];
 
 // ชื่อแท็บทางเลือก (สะกดผิด / เปลี่ยนชื่อ / ตัวพิมพ์เล็กใหญ่)
@@ -86,6 +95,15 @@ var SHEET_ALIASES = {
     'POP UP Bannar',
     'POP UP',
     'Lead Subscribe POP UP'
+  ],
+  'Sell out Wuttichai.P': [
+    'Sell out Wuttichai.P',
+    'Sell out Wuttichai.P (POND)',
+    'Sell out Wuttichai.P(POND)',
+    'Sell out Wuttichai P',
+    'Sell out Wuttichai P (POND)',
+    'Sellout Wuttichai.P',
+    'Sell out POND'
   ]
 };
 
@@ -237,6 +255,15 @@ function getSheetConfig(name) {
           lineId:         ''
         };
       }
+    },
+
+    // Sell out POND: A=No. B=Date C=OP/PO D=Category E=Model F=Quantity G=Amount
+    // H=Policy Name I=Installation Date J=Customer K=tel L=Province M=E-Promoter N=Remark
+    // ไม่มีคอลัมน์ Status — picCol=M notesCol=N
+    'Sell out Wuttichai.P': {
+      picCol:12, statusCol:-1, notesCol:13,
+      isSellout: true,
+      parse: function(row, disp) { return parseSelloutPondRow(row, disp); }
     }
   };
   // alias ชื่อแท็บ → ใช้ config เดียวกับ Braner
@@ -326,7 +353,8 @@ function lookupSheetConfig(name) {
   var keys = [
     'Meta Densu Aug', 'Meta Densu July', 'Meta Densu', 'Meta ITAX',
     'Lead Subscribe Lg.com', 'Lead LG Success', 'Lead Consult',
-    'Lead Subscribe POP UP Braner', 'POP UP Bannar'
+    'Lead Subscribe POP UP Braner', 'POP UP Bannar',
+    'Sell out Wuttichai.P'
   ];
   for (var i = 0; i < keys.length; i++) {
     if (normalizeSheetKey(keys[i]) === want) {
@@ -498,6 +526,11 @@ function getCustomers(promoter) {
     var sName = sheetNames[s];
     var baseCfg = getSheetConfig(sName);
     if (!baseCfg) continue;
+    if (baseCfg.isSellout && normalizeKey(promoter) !== 'POND') {
+      sheetsFound[sName] = false;
+      sourceCounts[sName] = 0;
+      continue;
+    }
     var resolved = resolveSheet(ss, sName);
     if (!resolved) { Logger.log('Not found: '+sName); sheetsFound[sName] = false; continue; }
     var sheet = resolved.sheet;
@@ -522,19 +555,24 @@ function getCustomers(promoter) {
     var range = sheet.getRange(1, 1, lastRow, maxCol);
     var data  = range.getValues();
     // Meta ใช้ display สำหรับวันที่/เบอร์ — ชีตอื่น parse จาก values พอ (เร็วขึ้น ~2x)
-    var needsDisp = !!(META_PAIR[sName] || sName === 'Meta ITAX' || sName.indexOf('Meta') === 0);
+    var needsDisp = !!(META_PAIR[sName] || sName === 'Meta ITAX' || sName.indexOf('Meta') === 0 || (baseCfg && baseCfg.isSellout));
     var disp = needsDisp ? range.getDisplayValues() : null;
     var cfg  = getRuntimeConfig(sName, sheet, data, promoter);
     if (!cfg) continue;
-    var housingCol = needsDisp ? findHousingCol(data[0], data) : -1;
+    var housingCol = needsDisp && !cfg.isSellout ? findHousingCol(data[0], data) : -1;
 
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (row.length <= cfg.picCol) continue;
-      if (!isPromoter(row[cfg.picCol], promoter)) continue;
+      if (cfg.isSellout) {
+        if (!isSelloutPic(row[cfg.picCol], promoter)) continue;
+      } else if (!isPromoter(row[cfg.picCol], promoter)) {
+        continue;
+      }
 
       var fields = cfg.parse(row, disp ? disp[i] : row);
       if (!fields.name && !fields.phone) continue;
+      if (cfg.isSellout && isSelloutHeaderRow(row)) continue;
       if (!fields.housingType && housingCol >= 0 && row.length > housingCol) {
         fields.housingType = normalizeHousingType(
           cleanDisplay(row[housingCol], disp && disp[i] ? disp[i][housingCol] : row[housingCol])
@@ -547,9 +585,13 @@ function getCustomers(promoter) {
       if (cfg.notesCol !== undefined && row.length > cfg.notesCol)
         notes = clean(row[cfg.notesCol]);
 
+      var status = '';
+      if (cfg.isSellout) status = selloutStatusFromInstall(fields.installDate);
+      else if (cfg.statusCol >= 0 && row.length > cfg.statusCol) status = clean(row[cfg.statusCol]);
+
       // source = ชื่อแท็บจริง (เพื่อ updateStatus/notes เขียนถูกชีต)
       var cust = { id:idNum++, source:actualName, row:i+1,
-                   status:clean(row[cfg.statusCol]), notes:notes };
+                   status:status, notes:notes };
       for (var k in fields) cust[k] = fields[k];
       all.push(cust);
       sourceCounts[sName]++;
@@ -617,6 +659,9 @@ function updateStatus(sheetName, rowNum, newStatus) {
   if (!sheetName || !rowNum) return { success:false, error:'Missing params' };
   var opened = openSheetWithConfig(sheetName);
   if (!opened || !opened.ok) return { success:false, error:(opened && opened.error) || ('Sheet not found: '+sheetName) };
+  if (opened.cfg.isSellout || opened.cfg.statusCol < 0) {
+    return { success:false, error:'ชีต Sell out ไม่มีคอลัมน์ Status — แก้ที่ Remark' };
+  }
   opened.sheet.getRange(rowNum, opened.cfg.statusCol+1).setValue(newStatus);
   return { success:true, sheet:opened.name, row:rowNum, status:newStatus };
 }
@@ -694,7 +739,8 @@ function debugSheets(promoter) {
     for (var i = 1; i < data.length; i++) {
       var v = data[i].length > cfg.picCol ? clean(data[i][cfg.picCol]) : '(short)';
       counts[v] = (counts[v]||0)+1;
-      if (isPromoter(v, promoter)) matched++;
+      var picOk = cfg.isSellout ? isSelloutPic(v, promoter) : isPromoter(v, promoter);
+      if (picOk) matched++;
     }
     report.push({
       sheet:sName, actualName:resolved.actualName, found:true,
@@ -730,8 +776,10 @@ function checkRows(sheetName, n, promoter) {
     var picVal = row.length > cfg.picCol ? String(row[cfg.picCol]) : '(short)';
     var fields = cfg.parse(row);
     var skip   = '';
+    var picOk = cfg.isSellout ? isSelloutPic(picVal, promoter) : isPromoter(picVal, promoter);
     if (row.length <= cfg.picCol)          skip = 'แถวสั้น';
-    else if (!isPromoter(picVal, promoter)) skip = colLetter(cfg.picCol)+'="'+picVal+'" ไม่ใช่ '+(promoter||PROMOTER);
+    else if (!picOk) skip = colLetter(cfg.picCol)+'="'+picVal+'" ไม่ใช่ '+(promoter||PROMOTER);
+    else if (cfg.isSellout && isSelloutHeaderRow(row)) skip = 'แถวหัวตาราง';
     else if (!fields.name && !fields.phone) skip = 'ชื่อ+เบอร์ว่าง';
     rows.push({ sheetRow:i+1, passed:skip==='', skipReason:skip||'-',
                 picVal:picVal, name:fields.name||'', phone:fields.phone||'' });
@@ -757,6 +805,59 @@ function normalizeKey(v) {
 
 function isPromoter(v, promoter) {
   return normalizeKey(v).indexOf(normalizeKey(promoter || PROMOTER)) !== -1;
+}
+
+// ชีต Sell out Wuttichai.P — คอลัมน์ M เขียน WUTTICHAI.P ไม่ใช่ POND
+// ดึงเฉพาะ CRM POND และห้ามชนกับ WUTTICHAI.N
+function isSelloutPic(v, promoter) {
+  var want = normalizeKey(promoter || PROMOTER);
+  var key  = normalizeKey(v);
+  if (!key) return false;
+  if (want !== 'POND') return false;
+  if (/WUTTICHAI\.?N/.test(key) && !/WUTTICHAI\.?P/.test(key)) return false;
+  return /WUTTICHAI\.?P/.test(key) || key.indexOf('POND') !== -1;
+}
+
+function isSelloutHeaderRow(row) {
+  var noVal = clean(row[0]).toLowerCase();
+  var name  = clean(row[9]).toLowerCase();
+  var tel   = clean(row[10]).toLowerCase();
+  if (noVal === 'no.' || noVal === 'no' || noVal === 'no. ') return true;
+  if (name === 'customer' || tel === 'tel') return true;
+  return false;
+}
+
+function selloutStatusFromInstall(installDate) {
+  var s = normalizeKey(installDate);
+  var raw = clean(installDate);
+  if (/CANCEL/.test(s) || raw.indexOf('ยกเลิก') !== -1) return 'Unqualified';
+  if (/CREDITREJECTION|REJECTION/.test(s) || raw.indexOf('ปฏิเสธ') !== -1) return 'No Credit Card';
+  if (raw.indexOf('รอยื่น') !== -1) return 'Follow up';
+  return 'Purchased';
+}
+
+function parseSelloutPondRow(row, disp) {
+  var cat = clean(row[3]), model = clean(row[4]);
+  var productType = cat && model ? (cat + ' · ' + model) : (cat || model);
+  return {
+    name:           clean(row[9]),
+    phone:          cleanDisplay(row[10], disp && disp[10]),
+    email:          '',
+    age:            '',
+    paymentChannel: '',
+    province:       clean(row[11]),
+    productType:    productType,
+    lineId:         '',
+    orderNo:        clean(row[2]),
+    category:       cat,
+    model:          model,
+    quantity:       cleanDisplay(row[5], disp && disp[5]),
+    amount:         cleanDisplay(row[6], disp && disp[6]),
+    policyName:     clean(row[7]),
+    installDate:    cleanDisplay(row[8], disp && disp[8]),
+    sellDate:       cleanDisplay(row[1], disp && disp[1]),
+    isSellout:      true
+  };
 }
 
 function colLetter(index) {

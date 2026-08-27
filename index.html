@@ -470,7 +470,7 @@
         <!-- Source strip -->
         <div>
           <div class="flex items-center justify-between mb-3 px-0.5">
-            <div class="text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">ช่องทาง Lead</div>
+            <div class="text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">ช่องทาง Lead / ลูกค้า</div>
             <div class="text-[11px] text-slate-400">กดเพื่อกรอง · กดซ้ำเพื่อยกเลิก</div>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
@@ -487,6 +487,16 @@
                 <span x-show="filterSource===sd.key" class="source-card-check">✓</span>
               </button>
             </template>
+          </div>
+          <!-- Sell out column legend -->
+          <div x-show="isSelloutFilterActive()"
+            class="mt-3 rounded-xl bg-emerald-50 ring-1 ring-emerald-200/80 px-4 py-3 text-[12px] text-emerald-900 leading-relaxed">
+            <div class="font-bold text-[11px] uppercase tracking-[.1em] text-emerald-700 mb-2">ฐานลูกค้า Sell out Wuttichai.P (POND)</div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-1">
+              <template x-for="item in selloutColumnLegend" :key="item.col">
+                <div><span class="font-bold tabular-nums" x-text="item.col"></span> = <span x-text="item.label"></span></div>
+              </template>
+            </div>
           </div>
           <!-- Meta column legend -->
           <div x-show="isMetaFilterActive() && showMetaLegend"
@@ -960,12 +970,13 @@
                               <span x-show="housingLabel(c.housingType)" x-text="housingLabel(c.housingType)"></span>
                               <span class="text-slate-300 tabular-nums" x-show="c.age" x-text="((c.province||housingLabel(c.housingType))?' · ':'')+c.age+'ปี'"></span>
                             </span>
-                            <span x-show="(c.province || c.age) && (c.convenientDate || c.contactTime)" class="text-slate-300">·</span>
+                            <span x-show="(c.province || c.age) && (c.convenientDate || c.contactTime || c.installDate)" class="text-slate-300">·</span>
                             <span x-show="c.convenientDate || c.contactTime" class="whitespace-nowrap">
                               <span x-show="c.convenientDate" x-text="fmtFilterDate(c.convenientDate)"></span>
                               <span x-show="c.convenientDate && c.contactTime" class="text-slate-300"> · </span>
                               <span x-show="c.contactTime" x-text="c.contactTime"></span>
                             </span>
+                            <span x-show="c.installDate" class="whitespace-nowrap" x-text="'ติดตั้ง '+c.installDate"></span>
                           </div>
                         </div>
                       </div>
@@ -1029,10 +1040,11 @@
                       :class="housingIsCondo(c.housingType) ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-800'"
                       x-text="housingLabel(c.housingType)"></span>
               </div>
-              <div x-show="c.convenientDate || c.contactTime" class="text-[11px] text-slate-400 mb-1">
+              <div x-show="c.convenientDate || c.contactTime || c.installDate" class="text-[11px] text-slate-400 mb-1">
                 <span x-show="c.convenientDate" x-text="'📅 '+fmtFilterDate(c.convenientDate)"></span>
                 <span x-show="c.convenientDate && c.contactTime" class="text-slate-300"> · </span>
                 <span x-show="c.contactTime" x-text="'🕐 '+c.contactTime"></span>
+                <span x-show="c.installDate" x-text="(c.convenientDate||c.contactTime?' · ':'')+'ติดตั้ง '+c.installDate"></span>
               </div>
               <div x-show="c.parsedNotes.length>0" class="flex items-baseline gap-2 pt-1.5 border-t border-slate-100 mt-1.5">
                 <span class="text-[10px] tabular-nums text-slate-400 shrink-0" x-text="fmtNoteDate(c.parsedNotes[0].date)"></span>
@@ -1167,6 +1179,30 @@
               <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">สินค้า <span x-show="isMetaSource(selectedCustomer.source)" class="normal-case font-semibold text-slate-300">(E)</span></div>
               <div class="text-[14px] text-slate-800 font-medium" x-text="selectedCustomer.productType"></div>
             </div>
+            <div x-show="isSelloutSource(selectedCustomer.source) && selectedCustomer.orderNo">
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">OP</div>
+              <div class="text-[14px] text-slate-800 font-medium tabular-nums" x-text="selectedCustomer.orderNo"></div>
+            </div>
+            <div x-show="isSelloutSource(selectedCustomer.source) && selectedCustomer.sellDate">
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">วันที่ขาย</div>
+              <div class="text-[14px] text-slate-800 font-medium" x-text="selectedCustomer.sellDate"></div>
+            </div>
+            <div x-show="isSelloutSource(selectedCustomer.source) && selectedCustomer.installDate">
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">วันติดตั้ง</div>
+              <div class="text-[14px] text-slate-800 font-medium" x-text="selectedCustomer.installDate"></div>
+            </div>
+            <div x-show="isSelloutSource(selectedCustomer.source) && selectedCustomer.quantity">
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">จำนวน</div>
+              <div class="text-[14px] text-slate-800 font-medium tabular-nums" x-text="selectedCustomer.quantity"></div>
+            </div>
+            <div x-show="isSelloutSource(selectedCustomer.source) && selectedCustomer.amount">
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">Amount</div>
+              <div class="text-[14px] text-slate-800 font-semibold tabular-nums" x-text="selectedCustomer.amount"></div>
+            </div>
+            <div x-show="isSelloutSource(selectedCustomer.source) && selectedCustomer.policyName" class="col-span-2">
+              <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">Policy Name</div>
+              <div class="text-[13px] text-slate-800 font-medium break-all" x-text="selectedCustomer.policyName"></div>
+            </div>
             <div x-show="selectedCustomer.paymentChannel">
               <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-1">ชำระเงิน <span class="normal-case font-semibold text-slate-300">(A)</span></div>
               <div class="text-[14px] text-slate-800 font-medium" x-text="selectedCustomer.paymentChannel"></div>
@@ -1186,7 +1222,7 @@
           </div>
 
           <!-- Status changer -->
-          <div>
+          <div x-show="!isSelloutSource(selectedCustomer.source)">
             <div class="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400 mb-2">เปลี่ยนสถานะ</div>
             <div class="flex flex-wrap gap-1.5 mb-3">
               <template x-for="s in statusDefs.filter(x=>x.value!=='')" :key="s.value">
@@ -1266,8 +1302,8 @@
 </div>
 
 <script>
-const CRM_BUILD       = '24 ส.ค. 69 v49 · housing full label';
-const CACHE_SCHEMA    = 'v21';
+const CRM_BUILD       = '27 ส.ค. 69 v50 · Sell out POND';
+const CACHE_SCHEMA    = 'v22';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
 const LOGIN_SESSION_KEY = 'lgCrmLoggedIn';
@@ -1294,12 +1330,18 @@ const SOURCE_ALIASES    = {
   'Lead POP UP Banner': 'Lead Subscribe POP UP Braner',
   'POP UP': 'Lead Subscribe POP UP Braner',
   'Lead Subscribe POP UP': 'Lead Subscribe POP UP Braner',
+  'Sell out Wuttichai.P (POND)': 'Sell out Wuttichai.P',
+  'Sell out Wuttichai.P(POND)': 'Sell out Wuttichai.P',
+  'Sell out Wuttichai P': 'Sell out Wuttichai.P',
+  'Sellout Wuttichai.P': 'Sell out Wuttichai.P',
+  'Sell out POND': 'Sell out Wuttichai.P',
 };
 function normalizeSource(src) {
   if (!src) return '';
   if (SOURCE_ALIASES[src]) return SOURCE_ALIASES[src];
   // fuzzy: ชื่อแท็บที่มี POP UP / Braner / Bannar
   if (/pop\s*up|braner|bannar|banner/i.test(src)) return 'Lead Subscribe POP UP Braner';
+  if (/sell\s*out/i.test(src)) return 'Sell out Wuttichai.P';
   return src;
 }
 function phoneKey(phone) {
@@ -1496,6 +1538,22 @@ function app() {
       {col:'K', label:'Email'},
       {col:'N', label:'ดำเนินการ / สถานะ'},
     ],
+    selloutColumnLegend: [
+      {col:'A', label:'No.'},
+      {col:'B', label:'Date'},
+      {col:'C', label:'OP'},
+      {col:'D', label:'Category'},
+      {col:'E', label:'Model'},
+      {col:'F', label:'Quantity'},
+      {col:'G', label:'Amount'},
+      {col:'H', label:'Policy Name'},
+      {col:'I', label:'Installation Date'},
+      {col:'J', label:'Customer'},
+      {col:'K', label:'tel'},
+      {col:'L', label:'Province'},
+      {col:'M', label:'E-Promoter'},
+      {col:'N', label:'Remark'},
+    ],
     metaLegacyColumnLegend: [
       {col:'A', label:'จังหวัด'},
       {col:'B', label:'สินค้า'},
@@ -1519,6 +1577,8 @@ function app() {
       {key:'Lead Consult',                 short:'Consult', label:'Lead Consult',  toneClass:'tone-orange', barClass:'bg-orange-400', img:'assets/channels/lead-consult.png'},
       {key:'Lead Subscribe POP UP Braner', short:'POP UP',  label:'POP UP', toneClass:'tone-rose',   barClass:'bg-rose-400', img:'assets/channels/pop-up.png',
         columnHelp:'Bannar(ก.ค.): B=ชื่อ C=เบอร์ F=Sale Consultant · Braner(เก่า): C+D=ชื่อ F=เบอร์ L=PIC'},
+      {key:'Sell out Wuttichai.P', short:'Sell out', label:'Sell out POND', toneClass:'tone-emerald', barClass:'bg-emerald-600', img:'assets/channels/sell-out.png',
+        columnHelp:'A=No. · B=Date · C=OP · D=Category · E=Model · F=Qty · G=Amount · H=Policy · I=ติดตั้ง · J=ลูกค้า · K=เบอร์ · L=จังหวัด · N=Remark'},
     ],
 
     /* ── Init ── */
@@ -1710,6 +1770,11 @@ function app() {
         (c.name||'').toLowerCase().includes(q) ||
         (c.phone||'').includes(q) ||
         (c.email||'').toLowerCase().includes(q) ||
+        (c.orderNo||'').toLowerCase().includes(q) ||
+        (c.model||'').toLowerCase().includes(q) ||
+        (c.productType||'').toLowerCase().includes(q) ||
+        (c.policyName||'').toLowerCase().includes(q) ||
+        (c.province||'').toLowerCase().includes(q) ||
         (this.housingLabel(c.housingType)||'').toLowerCase().includes(q)
       );
       if (this.filterSource)   list = list.filter(c => this.customerMatchesSource(c, this.filterSource));
@@ -2081,6 +2146,12 @@ function app() {
       return {'':'— ยังไม่ระบุ','Called':'Called','Follow up':'Follow up','Unqualified':'Unqualified',
               'Called buy denied':'Called but denied','No Credit Card':'No Credit Card','Purchased':'Purchased'}[s] ?? (s||'— ยังไม่ระบุ');
     },
+    isSelloutSource(src) {
+      return normalizeSource(src) === 'Sell out Wuttichai.P';
+    },
+    isSelloutFilterActive() {
+      return this.filterSource === 'Sell out Wuttichai.P';
+    },
     isMetaSource(src) {
       const s = normalizeSource(src);
       return s === 'Meta Densu Aug' || s === 'Meta Densu July' || s === 'Meta Densu' || s === 'Meta ITAX';
@@ -2442,10 +2513,11 @@ function app() {
 
     /* ── Export ── */
     exportCSV() {
-      const cols = ['#','ชื่อ','เบอร์','Email','LINE ID','จังหวัด','ที่อยู่','อายุ','สินค้า','ชำระเงิน','วันที่สะดวก','ช่วงเวลา','Status','ที่มา'];
+      const cols = ['#','ชื่อ','เบอร์','Email','LINE ID','จังหวัด','ที่อยู่','อายุ','สินค้า','ชำระเงิน','วันที่สะดวก','ช่วงเวลา','OP','วันที่ขาย','วันติดตั้ง','จำนวน','Amount','Policy','Status','ที่มา'];
       const rows = this.filtered.map(c => [c.id, c.name||'', this.rawPhone(c.phone)||'', c.email||'',
                                             c.lineId||'', c.province||'', this.housingLabel(c.housingType)||'', c.age||'', c.productType||'',
                                             c.paymentChannel||'', c.convenientDate||'', c.contactTime||'',
+                                            c.orderNo||'', c.sellDate||'', c.installDate||'', c.quantity||'', c.amount||'', c.policyName||'',
                                             c.status||'', c.source||'']);
       const csv  = [cols,...rows].map(r => r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
       const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
