@@ -825,34 +825,38 @@ function addSellout(p, promoter) {
     return { success:false, error:'ต้องมีอย่างน้อย ชื่อ หรือเบอร์ หรือ OP' };
   }
   var lastCol = 14; // A–N
-  var start = SELLOUT_START_ROW; // 153
+  var start = SELLOUT_START_ROW; // 153 — ห้ามต่อท้าย getLastRow()
   var lastScan = Math.max(sheet.getLastRow(), start);
-  var lastFilled = start - 1; // 152 = แถวก่อนหน้า สำหรับฟอร์แมต
-  var maxNo = 0;
   if (lastScan >= 2) {
     var existing = sheet.getRange(2, 1, lastScan - 1, lastCol).getValues();
     for (var i = 0; i < existing.length; i++) {
-      var sheetRow = i + 2;
-      var rowHas = false;
-      for (var c = 0; c < existing[i].length; c++) {
-        if (existing[i][c] !== '' && existing[i][c] !== null) { rowHas = true; break; }
-      }
-      if (!rowHas) continue;
+      if (!selloutRowHas(existing[i])) continue;
       if (op && clean(existing[i][2]) === op) {
+        var sheetRow = i + 2;
         return {
           success:false, duplicate:true, row:sheetRow, op:op,
           error:'มี OP นี้แล้วที่แถว ' + sheetRow + ' (' + clean(existing[i][9]) + ')'
         };
       }
-      if (sheetRow >= start) {
-        lastFilled = sheetRow;
-        var n = parseInt(existing[i][0], 10);
-        if (!isNaN(n) && n > maxNo) maxNo = n;
-      }
     }
   }
-  var destRow = Math.max(start, lastFilled + 1);
-  var nextNo = maxNo + 1; // แถว 153 ว่าง = No.1 แล้วไล่ลงมา
+  // แถวว่างช่องแรกตั้งแต่ 153 — ไม่กระโดดไปแถวท้ายชีต (เช่น 204)
+  var destRow = start;
+  var filledFromStart = 0;
+  var look = Math.max(lastScan, start);
+  var blockLen = look - start + 1;
+  var block = sheet.getRange(start, 1, blockLen, lastCol).getValues();
+  var foundGap = false;
+  for (var b = 0; b < block.length; b++) {
+    if (!selloutRowHas(block[b])) {
+      destRow = start + b;
+      foundGap = true;
+      break;
+    }
+    filledFromStart++;
+  }
+  if (!foundGap) destRow = start + block.length;
+  var nextNo = filledFromStart + 1; // 153 ว่าง = No.1
   var remark = clean(p.remark || p.notes); // ว่างได้ — ไม่ใส่ให้อัตโนมัติ
   var values = [[
     nextNo,
@@ -871,7 +875,7 @@ function addSellout(p, promoter) {
     remark
   ]];
   var dest = sheet.getRange(destRow, 1, 1, lastCol);
-  var formatRow = lastFilled >= 2 ? lastFilled : (start - 1);
+  var formatRow = destRow > start ? destRow - 1 : (start - 1); // 152 หรือแถวก่อนหน้าในบล็อกใหม่
   if (formatRow >= 2) {
     sheet.getRange(formatRow, 1, 1, lastCol).copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
     sheet.setRowHeight(destRow, sheet.getRowHeight(formatRow));
@@ -889,6 +893,17 @@ function addSellout(p, promoter) {
     op: op,
     name: name
   };
+}
+
+function selloutRowHas(row) {
+  if (!row) return false;
+  for (var c = 0; c < row.length; c++) {
+    var v = row[c];
+    if (v === '' || v === null) continue;
+    if (typeof v === 'string' && v.replace(/\s+/g, '') === '') continue;
+    return true;
+  }
+  return false;
 }
 
 function toSelloutDate(s) {
