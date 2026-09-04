@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v51</title>
+<title>LG Subscribe CRM · POND · v52</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -343,6 +343,76 @@
   </div>
 </div>
 
+<!-- ═══ SELLOUT FROM OSMS SCREENSHOT ═══ -->
+<div class="modal-overlay" x-show="selloutModal" x-transition style="display:none" @click.self="closeSelloutModal()">
+  <div class="bg-white rounded-2xl p-6 max-w-[560px] w-full shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="font-display font-bold text-[18px]">ลงยอดขาย · Sell out POND</div>
+        <div class="text-[13px] text-slate-500 mt-0.5">แนบสกรีน OSMS (รายละเอียดของสัญญา) แล้วตรวจก่อนบันทึกชีต</div>
+      </div>
+      <button @click="closeSelloutModal()" class="h-9 w-9 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-100 transition text-xl">×</button>
+    </div>
+    <label class="block rounded-xl ring-1 ring-dashed ring-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer px-4 py-4 text-center mb-3">
+      <input type="file" accept="image/*" class="hidden" @change="onSelloutFile($event)"/>
+      <div class="text-[13px] font-semibold text-slate-700">แนบรูปสกรีน OSMS</div>
+      <div class="text-[12px] text-slate-400 mt-0.5" x-text="selloutFileName || 'กดเพื่อเลือกรูปจากเครื่อง / มือถือ'"></div>
+    </label>
+    <div x-show="selloutPreview" class="mb-3 rounded-xl overflow-hidden ring-1 ring-slate-200 bg-slate-50 max-h-40">
+      <img :src="selloutPreview" alt="preview" class="w-full max-h-40 object-contain"/>
+    </div>
+    <div x-show="selloutOcrMsg" class="mb-3 text-[13px]" :class="selloutOcrOk ? 'text-emerald-700' : 'text-slate-500'" x-text="selloutOcrMsg"></div>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="col-span-2 text-[12px] font-bold text-slate-500">ชื่อลูกค้า
+        <input x-model="selloutForm.name" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800" placeholder="ชื่อ-นามสกุล"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">เบอร์
+        <input x-model="selloutForm.phone" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800" placeholder="ไม่บังคับ"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">จังหวัด
+        <input x-model="selloutForm.province" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">OP / รหัสสัญญา
+        <input x-model="selloutForm.op" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] font-mono text-slate-800"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">วันที่ขาย
+        <input x-model="selloutForm.sellDate" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800" placeholder="30/08/2026"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">วันติดตั้ง
+        <input x-model="selloutForm.installDate" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800" placeholder="01/09/2026"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">หมวด
+        <input x-model="selloutForm.category" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800"/>
+      </label>
+      <label class="col-span-2 text-[12px] font-bold text-slate-500">รุ่น
+        <input x-model="selloutForm.model" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">จำนวน
+        <input x-model="selloutForm.quantity" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800"/>
+      </label>
+      <label class="text-[12px] font-bold text-slate-500">ค่าเช่า / เดือน
+        <input x-model="selloutForm.amount" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800"/>
+      </label>
+      <label class="col-span-2 text-[12px] font-bold text-slate-500">Policy
+        <input x-model="selloutForm.policy" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[13px] font-mono text-slate-800"/>
+      </label>
+      <label class="col-span-2 text-[12px] font-bold text-slate-500">Remark
+        <textarea x-model="selloutForm.remark" rows="2" class="mt-1 w-full px-3 py-2 rounded-xl bg-white ring-1 ring-slate-200 text-[13px] text-slate-800"></textarea>
+      </label>
+    </div>
+    <div x-show="selloutErr" class="mt-3 text-[13px] text-rose-600" x-text="selloutErr"></div>
+    <div x-show="selloutOkMsg" class="mt-3 text-[13px] text-emerald-700" x-text="selloutOkMsg"></div>
+    <div class="flex gap-3 mt-5">
+      <button class="flex-1 h-11 rounded-xl text-[14px] font-bold text-white disabled:opacity-50" style="background:var(--accent)"
+        :disabled="selloutSaving" @click="saveSellout()">
+        <span x-show="!selloutSaving">บันทึกลงชีต Sell out</span>
+        <span x-show="selloutSaving">กำลังบันทึก...</span>
+      </button>
+      <button class="h-11 px-5 rounded-xl text-[14px] font-semibold text-slate-600 bg-white ring-1 ring-slate-200" @click="closeSelloutModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ HEADER ═══ -->
 <header x-show="isLoggedIn" x-cloak class="sticky top-0 z-50" style="backdrop-filter:blur(10px)">
   <nav class="navbar">
@@ -491,7 +561,11 @@
           <!-- Sell out column legend -->
           <div x-show="isSelloutFilterActive()"
             class="mt-3 rounded-xl bg-emerald-50 ring-1 ring-emerald-200/80 px-4 py-3 text-[12px] text-emerald-900 leading-relaxed">
-            <div class="font-bold text-[11px] uppercase tracking-[.1em] text-emerald-700 mb-2">ฐานลูกค้า Sell out Wuttichai.P (POND)</div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="font-bold text-[11px] uppercase tracking-[.1em] text-emerald-700">ฐานลูกค้า Sell out Wuttichai.P (POND)</div>
+              <button x-show="isPondCrm()" type="button" @click="openSelloutModal()"
+                class="h-8 px-3 rounded-full text-[12px] font-semibold text-white" style="background:var(--accent)">+ ลงยอดขายจากรูป</button>
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-1">
               <template x-for="item in selloutColumnLegend" :key="item.col">
                 <div><span class="font-bold tabular-nums" x-text="item.col"></span> = <span x-text="item.label"></span></div>
@@ -872,6 +946,12 @@
             class="h-11 px-3.5 rounded-xl text-[13px] font-medium text-slate-500 bg-white ring-1 ring-slate-200 hover:bg-slate-50 inline-flex items-center gap-1.5 transition">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             ล้าง
+          </button>
+          <button x-show="isPondCrm()" type="button" @click="openSelloutModal()"
+            class="h-11 px-3.5 rounded-xl text-[13px] font-semibold text-white inline-flex items-center gap-1.5 transition"
+            style="background:var(--accent)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            ลงยอดขาย
           </button>
           <button @click="exportCSV()"
             class="h-11 px-3.5 rounded-xl text-[13px] font-semibold text-slate-600 bg-white ring-1 ring-slate-200 hover:bg-slate-50 inline-flex items-center gap-1.5 transition">
@@ -1302,7 +1382,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '3 ก.ย. 69 v51 · Meta Densu Sep';
+const CRM_BUILD       = '4 ก.ย. 69 v52 · ลงยอดขาย OSMS';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1434,6 +1514,11 @@ function app() {
 
     /* ── Follow-up modal ── */
     fuModal: false, fuDateTime: '', fuErr: '', _pendingFuActivity: null,
+
+    /* ── ลงยอดขาย OSMS ── */
+    selloutModal: false, selloutSaving: false, selloutErr: '', selloutOkMsg: '',
+    selloutFileName: '', selloutPreview: '', selloutOcrMsg: '', selloutOcrOk: false,
+    selloutForm: emptySelloutForm(),
 
     /* ── Activity picker ── */
     selectedActivity: '',
@@ -2153,8 +2238,87 @@ function app() {
       return {'':'— ยังไม่ระบุ','Called':'Called','Follow up':'Follow up','Unqualified':'Unqualified',
               'Called buy denied':'Called but denied','No Credit Card':'No Credit Card','Purchased':'Purchased'}[s] ?? (s||'— ยังไม่ระบุ');
     },
+    isPondCrm() {
+      return PROMOTER === 'POND';
+    },
     isSelloutSource(src) {
       return normalizeSource(src) === 'Sell out Wuttichai.P';
+    },
+    openSelloutModal() {
+      this.selloutModal = true;
+      this.selloutErr = '';
+      this.selloutOkMsg = '';
+      this.selloutOcrMsg = '';
+      this.selloutOcrOk = false;
+      this.selloutFileName = '';
+      this.selloutPreview = '';
+      this.selloutForm = emptySelloutForm();
+    },
+    closeSelloutModal() {
+      if (this.selloutSaving) return;
+      this.selloutModal = false;
+    },
+    async onSelloutFile(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (!file) return;
+      this.selloutFileName = file.name;
+      this.selloutErr = '';
+      this.selloutOkMsg = '';
+      this.selloutOcrOk = false;
+      this.selloutPreview = URL.createObjectURL(file);
+      this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป…';
+      try {
+        const Tesseract = await loadTesseract();
+        const result = await Tesseract.recognize(file, 'tha+eng', {
+          logger: m => {
+            if (m && m.status === 'recognizing text' && m.progress != null) {
+              this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป ' + Math.round(m.progress * 100) + '%';
+            }
+          }
+        });
+        const parsed = parseOsmsContract(result && result.data && result.data.text);
+        this.selloutForm = Object.assign(emptySelloutForm(), parsed);
+        const filled = ['name','op','model','installDate','amount'].filter(k => this.selloutForm[k]).length;
+        this.selloutOcrOk = filled >= 2;
+        this.selloutOcrMsg = this.selloutOcrOk
+          ? 'อ่านรูปแล้ว — ตรวจชื่อ/รุ่น/OP ก่อนกดบันทึก'
+          : 'อ่านรูปได้บางส่วน — กรอกช่องที่ว่างเองได้';
+      } catch (e) {
+        this.selloutOcrOk = false;
+        this.selloutOcrMsg = 'อ่านรูปอัตโนมัติไม่ได้ — กรอกมือได้ (' + (e.message || e) + ')';
+      }
+    },
+    async saveSellout() {
+      if (!this.isPondCrm()) { this.selloutErr = 'ลงยอดขายชีตนี้ได้เฉพาะ POND'; return; }
+      const f = this.selloutForm;
+      if (!(f.name || f.phone || f.op)) { this.selloutErr = 'ต้องมีอย่างน้อย ชื่อ หรือเบอร์ หรือ OP'; return; }
+      this.selloutSaving = true;
+      this.selloutErr = '';
+      this.selloutOkMsg = '';
+      try {
+        const r = await this._writeJsonp({
+          action: 'addSellout',
+          promoter: PROMOTER,
+          name: f.name, phone: f.phone, province: f.province,
+          op: f.op, sellDate: f.sellDate, installDate: f.installDate,
+          category: f.category, model: f.model,
+          quantity: f.quantity, amount: f.amount,
+          policy: f.policy, remark: f.remark
+        });
+        if (r.soft) {
+          this.selloutOkMsg = 'ส่งคำสั่งแล้ว ถ้า Sheet ช้าให้กดโหลดใหม่อีกครั้ง';
+        } else {
+          const d = r.data || {};
+          this.selloutOkMsg = 'บันทึกแล้ว แถว ' + (d.row || '') + (d.no ? ' · No. ' + d.no : '');
+        }
+        this.filterSource = 'Sell out Wuttichai.P';
+        this.fetchData({ soft: true });
+      } catch (e) {
+        this.selloutErr = e.message || String(e);
+      } finally {
+        this.selloutSaving = false;
+      }
     },
     isSelloutFilterActive() {
       return this.filterSource === 'Sell out Wuttichai.P';
@@ -2535,6 +2699,105 @@ function app() {
       a.click(); URL.revokeObjectURL(url);
     },
   };
+}
+
+function emptySelloutForm() {
+  return {
+    name: '', phone: '', province: '', op: '', sellDate: '', installDate: '',
+    category: '', model: '', quantity: '1', amount: '', policy: '', remark: ''
+  };
+}
+
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = () => resolve(window.Tesseract);
+    s.onerror = () => reject(new Error('โหลด OCR ไม่ได้'));
+    document.head.appendChild(s);
+  });
+}
+
+function parseOsmsContract(raw) {
+  const text = String(raw || '').replace(/\u00a0/g, ' ').replace(/\r/g, '\n');
+  const grab = (re) => {
+    const m = text.match(re);
+    if (!m) return '';
+    return String(m[1] != null ? m[1] : m[0]).replace(/\s+/g, ' ').trim();
+  };
+  const after = (labelRe, stopRe) => {
+    const m = text.match(labelRe);
+    if (!m) return '';
+    let rest = text.slice(m.index + m[0].length).replace(/^[\s:：\-]+/, '');
+    const stop = rest.search(stopRe || /\n/);
+    rest = (stop >= 0 ? rest.slice(0, stop) : rest.split('\n')[0] || '');
+    return rest.replace(/\s+/g, ' ').trim();
+  };
+  const cu = grab(/\bCU\d{6,}\b/i);
+  const ct = grab(/\bCT\d{10,}\b/i);
+  const install = grab(/วันที่ติดตั้ง[^\d]{0,12}(\d{1,2}\/\d{1,2}\/\d{4})/)
+    || grab(/\b(\d{2}\/\d{2}\/20\d{2})\b/);
+  let sellDate = '';
+  const ctDate = (ct.match(/^CT(\d{2})(\d{2})(\d{2})/) || []);
+  if (ctDate.length) sellDate = ctDate[3] + '/' + ctDate[2] + '/20' + ctDate[1];
+  let name = after(/ชื่อลูกค้า/, /ประเภทลูกค้า|Individual|ที่อยู่|บันทึก/);
+  name = name.replace(/บันทึก/g, '').replace(/\bIndividual\b/ig, '').trim();
+  const addr = after(/ที่อยู่สำหรับติดตั้ง|ที่อยู่/, /หมวดหมู่|Subscription|สถานะ/);
+  let province = '';
+  if (/กรุงเทพ/.test(addr)) province = 'กรุงเทพมหานคร';
+  else {
+    const pv = addr.match(/(?:จังหวัด|จ\.)\s*([ก-ฮ]{2,20})/);
+    if (pv) province = pv[1];
+  }
+  const itemRaw = grab(/BOUNCE[^\n]+/i)
+    || after(/(?:^|\n)\s*รายการ\s+/, /วันที่|ระยะเวลา|60Month/)
+    || after(/ประเภทรายการ/, /รายการ|วันที่|BOUNCE/);
+  let model = (itemRaw || '').replace(/_OS\b/g, '').replace(/\s+/g, ' ').trim();
+  const typeRaw = after(/ประเภทรายการ/, /รายการ|วันที่|BOUNCE/)
+    || grab(/Home Audio[^\n]*/i)
+    || grab(/Wireless Speaker[^\n]*/i);
+  const category = mapOsmsCategory(typeRaw + ' ' + model);
+  const policy = grab(/NOSERVICE_[A-Z0-9_%().]+/i)
+    || after(/นโยบายการกำหนดราคา/, /ค่าเช่า|จำนวนเงิน|ชื่อโปร/);
+  const amount = grab(/ค่าเช่า[^\d]{0,16}(\d+(?:\.\d+)?)/)
+    || grab(/Rental Fee[^\d]{0,16}(\d+(?:\.\d+)?)/);
+  const received = grab(/จำนวนเงินที่ได้รับ[^\d]{0,16}(\d+(?:\.\d+)?)/);
+  const rentalNet = grab(/Rental Fee Total[^\d]{0,16}(\d+(?:\.\d+)?)/);
+  const promo = after(/ชื่อโปรโมชัน|ชื่อโปรโมชั่น/, /Rental|จำนวนเงิน|Promotion/);
+  const status = grab(/Completion|Pending|Cancel/i);
+  const remarkParts = [];
+  if (cu) remarkParts.push(cu);
+  if (status) remarkParts.push('OSMS ' + status);
+  if (promo) remarkParts.push(promo.replace(/_/g, ' '));
+  if (rentalNet) remarkParts.push('Rental ' + rentalNet);
+  if (received) remarkParts.push('รับแล้ว ' + received);
+  return {
+    name, phone: '', province, op: ct || cu,
+    sellDate, installDate: install,
+    category, model,
+    quantity: '1', amount,
+    policy,
+    remark: remarkParts.join(' · ')
+  };
+}
+
+function mapOsmsCategory(s) {
+  const u = String(s || '').toUpperCase();
+  if (/SPEAKER|HOME AUDIO|SOUND ?BAR|XBOOM|BOUNCE/.test(u)) return 'ลำโพง';
+  if (/\bTV\b|OLED|QNED|NANO|โทรทัศน์/.test(u)) return 'โทรทัศน์';
+  if (/MONITOR|มอนิเตอร์/.test(u)) return 'มอนิเตอร์';
+  if (/REF|REFRIGERATOR|ตู้เย็น|MULTI-?DOOR/.test(u)) return 'ตู้เย็น';
+  if (/WASHER|WASH|ซักผ้า/.test(u)) return 'เครื่องซักผ้า';
+  if (/DRYER|อบผ้า/.test(u)) return 'เครื่องอบผ้า';
+  if (/STYLER/.test(u)) return 'Styler';
+  if (/DISHWASHER|ล้างจาน/.test(u)) return 'เครื่องล้างจาน';
+  if (/WATER|กรองน้ำ/.test(u)) return 'เครื่องกรองน้ำ';
+  if (/AIR.?CONDITION|แอร์|RAC|SAC/.test(u)) return 'เครื่องปรับอากาศ';
+  if (/PURIFIER|ฟอกอากาศ/.test(u)) return 'เครื่องฟอกอากาศ';
+  if (/VACUUM|ดูดฝุ่น/.test(u)) return 'เครื่องดูดฝุ่น';
+  if (/MICROWAVE|ไมโครเวฟ/.test(u)) return 'ไมโครเวฟ';
+  return String(s || '').replace(/_OS/g, '').trim();
 }
 
 function jsonpCall(baseUrl, params={}, timeout=30000) {

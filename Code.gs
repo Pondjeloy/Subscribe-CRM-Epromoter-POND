@@ -139,6 +139,7 @@ function doGet(e) {
       case 'appendNote':    result = appendNote(p.sheet, parseInt(p.row,10), p.note||''); break;
       case 'updateNotes':   result = updateNotes(p.sheet, parseInt(p.row,10), p.notes||''); break;
       case 'setNoteHighlight': result = setNoteHighlight(p.sheet, parseInt(p.row,10), parseInt(p.level||'0',10)); break;
+      case 'addSellout':    result = addSellout(p, promoter); break;
       default:              result = { success:false, error:'Unknown action: '+action };
     }
   } catch(err) {
@@ -799,6 +800,66 @@ function checkRows(sheetName, n, promoter) {
            picColumn:colLetter(cfg.picCol), detect:cfg.detect||null, rows:rows };
 }
 
+// ── ลงยอดขาย Sell out Wuttichai.P (POND เท่านั้น) ──────
+// A=No. B=Date C=OP D=Category E=Model F=Qty G=Amount
+// H=Policy I=Install J=Customer K=tel L=Province M=E-Promoter N=Remark
+function addSellout(p, promoter) {
+  p = p || {};
+  if (normalizeKey(promoter || PROMOTER) !== 'POND') {
+    return { success:false, error:'ลงยอดขายชีต Sell out ใช้ได้เฉพาะ POND' };
+  }
+  var opened = openSheetWithConfig('Sell out Wuttichai.P', 'POND');
+  if (!opened || !opened.ok) {
+    return { success:false, error:(opened && opened.error) || 'ไม่พบชีต Sell out Wuttichai.P' };
+  }
+  var sheet = opened.sheet;
+  var name = clean(p.name || p.customer);
+  var phone = clean(p.phone || p.tel);
+  var op = clean(p.op || p.orderNo);
+  if (!name && !phone && !op) {
+    return { success:false, error:'ต้องมีอย่างน้อย ชื่อ หรือเบอร์ หรือ OP' };
+  }
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var lastCol = Math.max(sheet.getLastColumn(), 14);
+  var existing = lastRow >= 2 ? sheet.getRange(2, 1, lastRow - 1, Math.min(lastCol, 14)).getValues() : [];
+  var maxNo = 0;
+  for (var i = 0; i < existing.length; i++) {
+    var n = parseInt(existing[i][0], 10);
+    if (!isNaN(n) && n > maxNo) maxNo = n;
+    if (op && clean(existing[i][2]) === op) {
+      return {
+        success:false, duplicate:true, row:i + 2, op:op,
+        error:'มี OP นี้แล้วที่แถว ' + (i + 2) + ' (' + clean(existing[i][9]) + ')'
+      };
+    }
+  }
+  var row = [
+    maxNo + 1,
+    clean(p.sellDate),
+    op,
+    clean(p.category),
+    clean(p.model),
+    clean(p.quantity || p.qty) || 1,
+    clean(p.amount),
+    clean(p.policy || p.policyName),
+    clean(p.installDate || p.install),
+    name,
+    phone,
+    clean(p.province),
+    'WUTTICHAI.P',
+    clean(p.remark || p.notes)
+  ];
+  sheet.appendRow(row);
+  return {
+    success:true,
+    sheet: opened.name,
+    row: sheet.getLastRow(),
+    no: maxNo + 1,
+    op: op,
+    name: name
+  };
+}
+
 // ── Helpers ─────────────────────────────────────────────
 function clean(v) {
   if (v===null||v===undefined) return '';
@@ -815,7 +876,13 @@ function normalizeKey(v) {
 }
 
 function isPromoter(v, promoter) {
-  return normalizeKey(v).indexOf(normalizeKey(promoter || PROMOTER)) !== -1;
+  var want = normalizeKey(promoter || PROMOTER);
+  var key  = normalizeKey(v);
+  if (!key || !want) return false;
+  if (key.indexOf(want) !== -1) return true;
+  if (want === 'PAIRAT' && key.indexOf('PIRAT') !== -1) return true;
+  if (want === 'PIRAT' && key.indexOf('PAIRAT') !== -1) return true;
+  return false;
 }
 
 // ชีต Sell out Wuttichai.P — คอลัมน์ M เขียน WUTTICHAI.P ไม่ใช่ POND
