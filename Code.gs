@@ -877,13 +877,17 @@ function addSellout(p, promoter) {
   var dest = sheet.getRange(destRow, 1, 1, lastCol);
   var formatRow = destRow > start ? destRow - 1 : (start - 1); // 152 หรือแถวก่อนหน้าในบล็อกใหม่
   if (formatRow >= 2) {
-    sheet.getRange(formatRow, 1, 1, lastCol).copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    var srcFmt = sheet.getRange(formatRow, 1, 1, lastCol);
+    srcFmt.copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
     sheet.setRowHeight(destRow, sheet.getRowHeight(formatRow));
   }
   dest.setValues(values);
   dest.setFontFamily(formatRow >= 2 ? sheet.getRange(formatRow, 1).getFontFamily() : 'Arial');
   dest.setFontSize(formatRow >= 2 ? sheet.getRange(formatRow, 1).getFontSize() : 10);
   dest.setFontWeight('normal');
+  dest.setFontStyle('normal');
+  dest.setFontColor(null);
+  dest.setBackground(null);
   dest.setVerticalAlignment(formatRow >= 2 ? sheet.getRange(formatRow, 1).getVerticalAlignment() : 'middle');
   return {
     success:true,
