@@ -49,12 +49,14 @@
 //  ไม่มีคอลัมน์ Status — ตั้ง Purchased อัตโนมัติ (ยกเลิก/ปฏิเสธเครดิตแยกสถานะ)
 //  ดึงเฉพาะ promoter=POND (กัน CRM WUTTICHAI N. ดึงชีตนี้)
 //
-//  [ลงยอดขาย] action=addSellout · POND เท่านั้น · เขียนแถวใหม่ M=WUTTICHAI.P
+//  [ลงยอดขาย] action=addSellout · POND เท่านั้น · เขียนตั้งแต่แถว 153 ไล่ลง
+//  No. เริ่มที่ 1 จากแถว 153 · Remark ว่างถ้าไม่ได้กรอก · ก๊อปฟอร์แมตแถว 152
 //  กัน OP ซ้ำ · ต้อง Redeploy Web App หลังอัป Code.gs
 // ════════════════════════════════════════════════════════
 
 var SPREADSHEET_ID = '1EUfdN0N05b-R2sAWgCraTxkMtyfvQEAqUNbNUZ9D7ps'; // ก.ย. 2569
 var PROMOTER       = 'POND';
+var SELLOUT_START_ROW = 153; // ลงยอดขายเริ่มแถวนี้ ไล่ลง · No. เริ่ม 1
 
 // ชื่อ canonical ใน CRM (1 การ์ด POP UP) — resolveSheet หาแท็บจริงให้
 var SHEET_NAMES = [
@@ -823,30 +825,34 @@ function addSellout(p, promoter) {
     return { success:false, error:'ต้องมีอย่างน้อย ชื่อ หรือเบอร์ หรือ OP' };
   }
   var lastCol = 14; // A–N
-  var lastScan = Math.max(sheet.getLastRow(), 1);
-  var lastDataRow = 1; // แถวหัวตาราง
+  var start = SELLOUT_START_ROW; // 153
+  var lastScan = Math.max(sheet.getLastRow(), start);
+  var lastFilled = start - 1; // 152 = แถวก่อนหน้า สำหรับฟอร์แมต
   var maxNo = 0;
   if (lastScan >= 2) {
     var existing = sheet.getRange(2, 1, lastScan - 1, lastCol).getValues();
     for (var i = 0; i < existing.length; i++) {
+      var sheetRow = i + 2;
       var rowHas = false;
       for (var c = 0; c < existing[i].length; c++) {
         if (existing[i][c] !== '' && existing[i][c] !== null) { rowHas = true; break; }
       }
       if (!rowHas) continue;
-      lastDataRow = i + 2;
-      var n = parseInt(existing[i][0], 10);
-      if (!isNaN(n) && n > maxNo) maxNo = n;
       if (op && clean(existing[i][2]) === op) {
         return {
-          success:false, duplicate:true, row:i + 2, op:op,
-          error:'มี OP นี้แล้วที่แถว ' + (i + 2) + ' (' + clean(existing[i][9]) + ')'
+          success:false, duplicate:true, row:sheetRow, op:op,
+          error:'มี OP นี้แล้วที่แถว ' + sheetRow + ' (' + clean(existing[i][9]) + ')'
         };
+      }
+      if (sheetRow >= start) {
+        lastFilled = sheetRow;
+        var n = parseInt(existing[i][0], 10);
+        if (!isNaN(n) && n > maxNo) maxNo = n;
       }
     }
   }
-  var nextNo = maxNo + 1; // ว่าง = เริ่มที่ 1 แล้วไล่ลงมา
-  var destRow = lastDataRow + 1;
+  var destRow = Math.max(start, lastFilled + 1);
+  var nextNo = maxNo + 1; // แถว 153 ว่าง = No.1 แล้วไล่ลงมา
   var remark = clean(p.remark || p.notes); // ว่างได้ — ไม่ใส่ให้อัตโนมัติ
   var values = [[
     nextNo,
@@ -865,15 +871,16 @@ function addSellout(p, promoter) {
     remark
   ]];
   var dest = sheet.getRange(destRow, 1, 1, lastCol);
-  if (lastDataRow >= 2) {
-    sheet.getRange(lastDataRow, 1, 1, lastCol).copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
-    sheet.setRowHeight(destRow, sheet.getRowHeight(lastDataRow));
+  var formatRow = lastFilled >= 2 ? lastFilled : (start - 1);
+  if (formatRow >= 2) {
+    sheet.getRange(formatRow, 1, 1, lastCol).copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    sheet.setRowHeight(destRow, sheet.getRowHeight(formatRow));
   }
   dest.setValues(values);
-  dest.setFontFamily(lastDataRow >= 2 ? sheet.getRange(lastDataRow, 1).getFontFamily() : 'Arial');
-  dest.setFontSize(lastDataRow >= 2 ? sheet.getRange(lastDataRow, 1).getFontSize() : 10);
+  dest.setFontFamily(formatRow >= 2 ? sheet.getRange(formatRow, 1).getFontFamily() : 'Arial');
+  dest.setFontSize(formatRow >= 2 ? sheet.getRange(formatRow, 1).getFontSize() : 10);
   dest.setFontWeight('normal');
-  dest.setVerticalAlignment(lastDataRow >= 2 ? sheet.getRange(lastDataRow, 1).getVerticalAlignment() : 'middle');
+  dest.setVerticalAlignment(formatRow >= 2 ? sheet.getRange(formatRow, 1).getVerticalAlignment() : 'middle');
   return {
     success:true,
     sheet: opened.name,
