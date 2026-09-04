@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v58</title>
+<title>LG Subscribe CRM · POND · v59</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1390,7 +1390,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '4 ก.ย. 69 v58 · คุณ + วรรค';
+const CRM_BUILD       = '4 ก.ย. 69 v59 · หมวด TV/WM/REF';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2831,20 +2831,22 @@ function parseOsmsContract(raw) {
 
 function mapOsmsCategory(s) {
   const u = String(s || '').toUpperCase();
-  if (/SPEAKER|HOME AUDIO|SOUND ?BAR|XBOOM|BOUNCE/.test(u)) return 'ลำโพง';
-  if (/\bTV\b|OLED|QNED|NANO|โทรทัศน์/.test(u)) return 'โทรทัศน์';
-  if (/MONITOR|มอนิเตอร์/.test(u)) return 'มอนิเตอร์';
-  if (/REF|REFRIGERATOR|ตู้เย็น|MULTI-?DOOR/.test(u)) return 'ตู้เย็น';
-  if (/WASHER|WASH|ซักผ้า/.test(u)) return 'เครื่องซักผ้า';
-  if (/DRYER|อบผ้า/.test(u)) return 'เครื่องอบผ้า';
-  if (/STYLER/.test(u)) return 'Styler';
-  if (/DISHWASHER|ล้างจาน/.test(u)) return 'เครื่องล้างจาน';
-  if (/WATER|กรองน้ำ/.test(u)) return 'เครื่องกรองน้ำ';
-  if (/AIR.?CONDITION|แอร์|RAC|SAC/.test(u)) return 'เครื่องปรับอากาศ';
-  if (/PURIFIER|ฟอกอากาศ/.test(u)) return 'เครื่องฟอกอากาศ';
-  if (/VACUUM|ดูดฝุ่น/.test(u)) return 'เครื่องดูดฝุ่น';
-  if (/MICROWAVE|ไมโครเวฟ/.test(u)) return 'ไมโครเวฟ';
-  return String(s || '').replace(/_OS/g, '').trim();
+  const raw = String(s || '').replace(/_OS/g, '').trim();
+  if (/STANBY|STANDBY|LIFE\s*STYLE|LIFESTYLE|27LX|สแตนบาย/.test(u)) return 'สแตนบายมี';
+  if (/\bMNT\b|MONITOR|มอนิเตอร์|จอมอนิเตอร์/.test(u)) return 'จอมอนิเตอร์';
+  if (/FREEZER|ตู้แช่แข็ง/.test(u)) return 'ตู้แช่แข็ง';
+  if (/\bAV\b|SOUND\s*BAR|SPEAKER|HOME AUDIO|XBOOM|BOUNCE|ซาวด์บาร์|ลำโพง/.test(u)) return 'ซาวด์บาร์ลำโพง';
+  if (/\bACC\b|VACUUM|A9T|ดูดฝุ่น/.test(u)) return 'เครื่องดูดฝุ่น';
+  if (/DEHUMID|ลดความชื้น/.test(u)) return 'เครื่องลดความชื้น';
+  if (/\bAP\b|PURIFIER|ฟอกอากาศ|เครื่องฟอก|AEROHIT|AEROMINI/.test(u)) return 'เครื่องฟอก';
+  if (/\bMWO\b|MICROWAVE|ไมโครเวฟ/.test(u)) return 'ไมโครเวฟ';
+  if (/\bWP\b|WATER|กรองน้ำ/.test(u)) return 'เครื่องกรองน้ำ';
+  if (/\bRAC\b|แอร์ติดผนัง|ARTCOOL/.test(u)) return 'แอร์ติดผนัง';
+  if (/STYLER|ตู้ถนอมผ้า/.test(u)) return 'ตู้ถนอมผ้า';
+  if (/\bWM\b|WASHER|WASH|ซักผ้า/.test(u)) return 'เครื่องซักผ้า';
+  if (/\bREF\b|REFRIGERATOR|ตู้เย็น|MULTI-?DOOR|SIDE.?BY.?SIDE/.test(u)) return 'ตู้เย็น';
+  if (/\bTV\b|OLED|QNED|NANO|ทีวี|โทรทัศน์/.test(u)) return 'ทีวี';
+  return raw;
 }
 
 function jsonpCall(baseUrl, params={}, timeout=30000) {

@@ -862,7 +862,7 @@ function addSellout(p, promoter) {
     nextNo,
     toSelloutDate(p.sellDate),
     op,
-    clean(p.category),
+    mapSelloutCategory(clean(p.category) + ' ' + clean(p.model)),
     clean(p.model),
     toSelloutNum(p.quantity || p.qty) || 1,
     toSelloutNum(p.amount),
@@ -894,6 +894,26 @@ function addSellout(p, promoter) {
     op: op,
     name: name
   };
+}
+
+function mapSelloutCategory(s) {
+  var u = String(s || '').toUpperCase();
+  var raw = String(s || '').replace(/_OS/g, '').replace(/\s+/g, ' ').trim();
+  if (/STANBY|STANDBY|LIFE\s*STYLE|LIFESTYLE|27LX|สแตนบาย/.test(u)) return 'สแตนบายมี';
+  if (/\bMNT\b|MONITOR|มอนิเตอร์|จอมอนิเตอร์/.test(u)) return 'จอมอนิเตอร์';
+  if (/FREEZER|ตู้แช่แข็ง/.test(u)) return 'ตู้แช่แข็ง';
+  if (/\bAV\b|SOUND\s*BAR|SPEAKER|HOME AUDIO|XBOOM|BOUNCE|ซาวด์บาร์|ลำโพง/.test(u)) return 'ซาวด์บาร์ลำโพง';
+  if (/\bACC\b|VACUUM|A9T|ดูดฝุ่น/.test(u)) return 'เครื่องดูดฝุ่น';
+  if (/DEHUMID|ลดความชื้น/.test(u)) return 'เครื่องลดความชื้น';
+  if (/\bAP\b|PURIFIER|ฟอกอากาศ|เครื่องฟอก|AEROHIT|AEROMINI/.test(u)) return 'เครื่องฟอก';
+  if (/\bMWO\b|MICROWAVE|ไมโครเวฟ/.test(u)) return 'ไมโครเวฟ';
+  if (/\bWP\b|WATER|กรองน้ำ/.test(u)) return 'เครื่องกรองน้ำ';
+  if (/\bRAC\b|แอร์ติดผนัง|ARTCOOL/.test(u)) return 'แอร์ติดผนัง';
+  if (/STYLER|ตู้ถนอมผ้า/.test(u)) return 'ตู้ถนอมผ้า';
+  if (/\bWM\b|WASHER|WASH|ซักผ้า/.test(u)) return 'เครื่องซักผ้า';
+  if (/\bREF\b|REFRIGERATOR|ตู้เย็น|MULTI-?DOOR|SIDE.?BY.?SIDE/.test(u)) return 'ตู้เย็น';
+  if (/\bTV\b|OLED|QNED|NANO|ทีวี|โทรทัศน์/.test(u)) return 'ทีวี';
+  return raw;
 }
 
 function withKhun(name) {
