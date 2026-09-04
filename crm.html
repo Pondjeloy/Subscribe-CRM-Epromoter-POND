@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v56</title>
+<title>LG Subscribe CRM · POND · v57</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1390,7 +1390,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '4 ก.ย. 69 v56 · บังคับแถว 153';
+const CRM_BUILD       = '4 ก.ย. 69 v57 · คุณ + Arial 11 ชิดซ้าย';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2303,6 +2303,7 @@ function app() {
           }
         });
         const parsed = parseOsmsContract(result && result.data && result.data.text);
+        if (parsed.name && parsed.name.indexOf('คุณ') !== 0) parsed.name = 'คุณ' + parsed.name;
         this.selloutForm = Object.assign(emptySelloutForm(), parsed);
         const filled = ['name','op','model','installDate','amount'].filter(k => this.selloutForm[k]).length;
         this.selloutOcrOk = filled >= 2;
@@ -2317,6 +2318,7 @@ function app() {
     async saveSellout() {
       if (!this.isPondCrm()) { this.selloutErr = 'ลงยอดขายชีตนี้ได้เฉพาะ POND'; return; }
       const f = this.selloutForm;
+      if (f.name && f.name.indexOf('คุณ') !== 0) f.name = 'คุณ' + f.name;
       if (!(f.name || f.phone || f.op)) { this.selloutErr = 'ต้องมีอย่างน้อย ชื่อ หรือเบอร์ หรือ OP'; return; }
       this.selloutSaving = true;
       this.selloutErr = '';

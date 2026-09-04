@@ -818,7 +818,7 @@ function addSellout(p, promoter) {
     return { success:false, error:(opened && opened.error) || 'ไม่พบชีต Sell out Wuttichai.P' };
   }
   var sheet = opened.sheet;
-  var name = clean(p.name || p.customer);
+  var name = withKhun(p.name || p.customer);
   var phone = clean(p.phone || p.tel);
   var op = clean(p.op || p.orderNo);
   if (!name && !phone && !op) {
@@ -875,20 +875,17 @@ function addSellout(p, promoter) {
     remark
   ]];
   var dest = sheet.getRange(destRow, 1, 1, lastCol);
-  var formatRow = destRow > start ? destRow - 1 : (start - 1); // 152 หรือแถวก่อนหน้าในบล็อกใหม่
-  if (formatRow >= 2) {
-    var srcFmt = sheet.getRange(formatRow, 1, 1, lastCol);
-    srcFmt.copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
-    sheet.setRowHeight(destRow, sheet.getRowHeight(formatRow));
-  }
+  var formatRow = destRow > start ? destRow - 1 : (start - 1);
+  if (formatRow >= 2) sheet.setRowHeight(destRow, sheet.getRowHeight(formatRow));
   dest.setValues(values);
-  dest.setFontFamily(formatRow >= 2 ? sheet.getRange(formatRow, 1).getFontFamily() : 'Arial');
-  dest.setFontSize(formatRow >= 2 ? sheet.getRange(formatRow, 1).getFontSize() : 10);
+  dest.setFontFamily('Arial');
+  dest.setFontSize(11);
   dest.setFontWeight('normal');
   dest.setFontStyle('normal');
   dest.setFontColor(null);
   dest.setBackground(null);
-  dest.setVerticalAlignment(formatRow >= 2 ? sheet.getRange(formatRow, 1).getVerticalAlignment() : 'middle');
+  dest.setHorizontalAlignment('left');
+  dest.setVerticalAlignment('middle');
   return {
     success:true,
     sheet: opened.name,
@@ -897,6 +894,13 @@ function addSellout(p, promoter) {
     op: op,
     name: name
   };
+}
+
+function withKhun(name) {
+  name = clean(name);
+  if (!name) return '';
+  if (name.indexOf('คุณ') === 0) return name;
+  return 'คุณ' + name;
 }
 
 function selloutRowHas(row) {
