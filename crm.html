@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v53</title>
+<title>LG Subscribe CRM · POND · v54</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -404,8 +404,8 @@
       <label class="col-span-2 text-[12px] font-bold text-slate-500">Policy
         <input x-model="selloutForm.policy" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[13px] font-mono text-slate-800"/>
       </label>
-      <label class="col-span-2 text-[12px] font-bold text-slate-500">Remark
-        <textarea x-model="selloutForm.remark" rows="2" class="mt-1 w-full px-3 py-2 rounded-xl bg-white ring-1 ring-slate-200 text-[13px] text-slate-800"></textarea>
+      <label class="col-span-2 text-[12px] font-bold text-slate-500">Remark <span class="font-medium text-slate-400">เว้นว่างได้ — กรอกเอง</span>
+        <textarea x-model="selloutForm.remark" rows="2" class="mt-1 w-full px-3 py-2 rounded-xl bg-white ring-1 ring-slate-200 text-[13px] text-slate-800" placeholder="ไม่ระบุจากรูป จะกรอกเองในชีต"></textarea>
       </label>
     </div>
     <div x-show="selloutErr" class="mt-3 text-[13px] text-rose-600" x-text="selloutErr"></div>
@@ -1390,7 +1390,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '4 ก.ย. 69 v53 · วางรูป Ctrl+V';
+const CRM_BUILD       = '4 ก.ย. 69 v54 · No.1 ไล่ลง · Remark กรอกเอง';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2813,23 +2813,13 @@ function parseOsmsContract(raw) {
     || after(/นโยบายการกำหนดราคา/, /ค่าเช่า|จำนวนเงิน|ชื่อโปร/);
   const amount = grab(/ค่าเช่า[^\d]{0,16}(\d+(?:\.\d+)?)/)
     || grab(/Rental Fee[^\d]{0,16}(\d+(?:\.\d+)?)/);
-  const received = grab(/จำนวนเงินที่ได้รับ[^\d]{0,16}(\d+(?:\.\d+)?)/);
-  const rentalNet = grab(/Rental Fee Total[^\d]{0,16}(\d+(?:\.\d+)?)/);
-  const promo = after(/ชื่อโปรโมชัน|ชื่อโปรโมชั่น/, /Rental|จำนวนเงิน|Promotion/);
-  const status = grab(/Completion|Pending|Cancel/i);
-  const remarkParts = [];
-  if (cu) remarkParts.push(cu);
-  if (status) remarkParts.push('OSMS ' + status);
-  if (promo) remarkParts.push(promo.replace(/_/g, ' '));
-  if (rentalNet) remarkParts.push('Rental ' + rentalNet);
-  if (received) remarkParts.push('รับแล้ว ' + received);
   return {
     name, phone: '', province, op: ct || cu,
     sellDate, installDate: install,
     category, model,
     quantity: '1', amount,
     policy,
-    remark: remarkParts.join(' · ')
+    remark: ''
   };
 }
 

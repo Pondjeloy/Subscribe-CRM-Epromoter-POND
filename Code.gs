@@ -822,45 +822,84 @@ function addSellout(p, promoter) {
   if (!name && !phone && !op) {
     return { success:false, error:'ต้องมีอย่างน้อย ชื่อ หรือเบอร์ หรือ OP' };
   }
-  var lastRow = Math.max(sheet.getLastRow(), 1);
-  var lastCol = Math.max(sheet.getLastColumn(), 14);
-  var existing = lastRow >= 2 ? sheet.getRange(2, 1, lastRow - 1, Math.min(lastCol, 14)).getValues() : [];
+  var lastCol = 14; // A–N
+  var lastScan = Math.max(sheet.getLastRow(), 1);
+  var lastDataRow = 1; // แถวหัวตาราง
   var maxNo = 0;
-  for (var i = 0; i < existing.length; i++) {
-    var n = parseInt(existing[i][0], 10);
-    if (!isNaN(n) && n > maxNo) maxNo = n;
-    if (op && clean(existing[i][2]) === op) {
-      return {
-        success:false, duplicate:true, row:i + 2, op:op,
-        error:'มี OP นี้แล้วที่แถว ' + (i + 2) + ' (' + clean(existing[i][9]) + ')'
-      };
+  if (lastScan >= 2) {
+    var existing = sheet.getRange(2, 1, lastScan - 1, lastCol).getValues();
+    for (var i = 0; i < existing.length; i++) {
+      var rowHas = false;
+      for (var c = 0; c < existing[i].length; c++) {
+        if (existing[i][c] !== '' && existing[i][c] !== null) { rowHas = true; break; }
+      }
+      if (!rowHas) continue;
+      lastDataRow = i + 2;
+      var n = parseInt(existing[i][0], 10);
+      if (!isNaN(n) && n > maxNo) maxNo = n;
+      if (op && clean(existing[i][2]) === op) {
+        return {
+          success:false, duplicate:true, row:i + 2, op:op,
+          error:'มี OP นี้แล้วที่แถว ' + (i + 2) + ' (' + clean(existing[i][9]) + ')'
+        };
+      }
     }
   }
-  var row = [
-    maxNo + 1,
-    clean(p.sellDate),
+  var nextNo = maxNo + 1; // ว่าง = เริ่มที่ 1 แล้วไล่ลงมา
+  var destRow = lastDataRow + 1;
+  var remark = clean(p.remark || p.notes); // ว่างได้ — ไม่ใส่ให้อัตโนมัติ
+  var values = [[
+    nextNo,
+    toSelloutDate(p.sellDate),
     op,
     clean(p.category),
     clean(p.model),
-    clean(p.quantity || p.qty) || 1,
-    clean(p.amount),
+    toSelloutNum(p.quantity || p.qty) || 1,
+    toSelloutNum(p.amount),
     clean(p.policy || p.policyName),
-    clean(p.installDate || p.install),
+    toSelloutDate(p.installDate || p.install),
     name,
     phone,
     clean(p.province),
     'WUTTICHAI.P',
-    clean(p.remark || p.notes)
-  ];
-  sheet.appendRow(row);
+    remark
+  ]];
+  var dest = sheet.getRange(destRow, 1, 1, lastCol);
+  if (lastDataRow >= 2) {
+    sheet.getRange(lastDataRow, 1, 1, lastCol).copyTo(dest, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    sheet.setRowHeight(destRow, sheet.getRowHeight(lastDataRow));
+  }
+  dest.setValues(values);
+  dest.setFontFamily(lastDataRow >= 2 ? sheet.getRange(lastDataRow, 1).getFontFamily() : 'Arial');
+  dest.setFontSize(lastDataRow >= 2 ? sheet.getRange(lastDataRow, 1).getFontSize() : 10);
+  dest.setFontWeight('normal');
+  dest.setVerticalAlignment(lastDataRow >= 2 ? sheet.getRange(lastDataRow, 1).getVerticalAlignment() : 'middle');
   return {
     success:true,
     sheet: opened.name,
-    row: sheet.getLastRow(),
-    no: maxNo + 1,
+    row: destRow,
+    no: nextNo,
     op: op,
     name: name
   };
+}
+
+function toSelloutDate(s) {
+  s = clean(s);
+  if (!s) return '';
+  var m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (!m) return s;
+  var d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
+  if (y < 100) y += 2000;
+  if (y > 2400) y -= 543;
+  return new Date(y, mo - 1, d);
+}
+
+function toSelloutNum(s) {
+  s = clean(s).replace(/,/g, '');
+  if (!s) return '';
+  var n = parseFloat(s);
+  return isNaN(n) ? s : n;
 }
 
 // ── Helpers ─────────────────────────────────────────────
