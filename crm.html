@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v52</title>
+<title>LG Subscribe CRM · POND · v53</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -344,20 +344,28 @@
 </div>
 
 <!-- ═══ SELLOUT FROM OSMS SCREENSHOT ═══ -->
-<div class="modal-overlay" x-show="selloutModal" x-transition style="display:none" @click.self="closeSelloutModal()">
+<div class="modal-overlay" x-show="selloutModal" x-transition style="display:none" @click.self="closeSelloutModal()" @paste="onSelloutPaste($event)">
   <div class="bg-white rounded-2xl p-6 max-w-[560px] w-full shadow-2xl max-h-[92vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
       <div>
         <div class="font-display font-bold text-[18px]">ลงยอดขาย · Sell out POND</div>
-        <div class="text-[13px] text-slate-500 mt-0.5">แนบสกรีน OSMS (รายละเอียดของสัญญา) แล้วตรวจก่อนบันทึกชีต</div>
+        <div class="text-[13px] text-slate-500 mt-0.5">ก็อปสกรีน OSMS แล้วกด Ctrl+V — ไม่ต้องอัปโหลดไฟล์</div>
       </div>
       <button @click="closeSelloutModal()" class="h-9 w-9 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-100 transition text-xl">×</button>
     </div>
-    <label class="block rounded-xl ring-1 ring-dashed ring-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer px-4 py-4 text-center mb-3">
-      <input type="file" accept="image/*" class="hidden" @change="onSelloutFile($event)"/>
-      <div class="text-[13px] font-semibold text-slate-700">แนบรูปสกรีน OSMS</div>
-      <div class="text-[12px] text-slate-400 mt-0.5" x-text="selloutFileName || 'กดเพื่อเลือกรูปจากเครื่อง / มือถือ'"></div>
-    </label>
+    <div class="rounded-xl ring-1 ring-dashed ring-emerald-300 bg-emerald-50/70 px-4 py-4 text-center mb-3 outline-none"
+      tabindex="0"
+      x-ref="selloutPasteBox"
+      @paste.prevent="onSelloutPaste($event)"
+      @dragover.prevent
+      @drop.prevent="onSelloutDrop($event)">
+      <div class="text-[13px] font-semibold text-emerald-800">ก็อปรูป แล้วกด Ctrl+V ที่นี่</div>
+      <div class="text-[12px] text-emerald-700/80 mt-0.5" x-text="selloutFileName || 'Win+Shift+S หรือก็อปจาก LINE แล้ววาง · ลากวางได้'"></div>
+      <label class="mt-2 inline-block text-[12px] font-semibold text-slate-500 hover:underline cursor-pointer">
+        <input type="file" accept="image/*" class="hidden" @change="onSelloutFile($event)"/>
+        หรือเลือกไฟล์ (ถ้าเครื่องอนุญาต)
+      </label>
+    </div>
     <div x-show="selloutPreview" class="mb-3 rounded-xl overflow-hidden ring-1 ring-slate-200 bg-slate-50 max-h-40">
       <img :src="selloutPreview" alt="preview" class="w-full max-h-40 object-contain"/>
     </div>
@@ -1382,7 +1390,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '4 ก.ย. 69 v52 · ลงยอดขาย OSMS';
+const CRM_BUILD       = '4 ก.ย. 69 v53 · วางรูป Ctrl+V';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1686,6 +1694,7 @@ function app() {
         this.fetchData({ soft: had });
       }
       document.addEventListener('keydown', e => { if (e.key === 'Escape') this.closeDrawer(); });
+      document.addEventListener('paste', e => { if (this.selloutModal) this.onSelloutPaste(e); });
     },
 
     /* ── Auth ── */
@@ -2253,19 +2262,35 @@ function app() {
       this.selloutFileName = '';
       this.selloutPreview = '';
       this.selloutForm = emptySelloutForm();
+      this.$nextTick(() => { try { this.$refs.selloutPasteBox && this.$refs.selloutPasteBox.focus(); } catch {} });
     },
     closeSelloutModal() {
       if (this.selloutSaving) return;
       this.selloutModal = false;
     },
-    async onSelloutFile(ev) {
+    onSelloutFile(ev) {
       const file = ev.target.files && ev.target.files[0];
       ev.target.value = '';
+      if (file) this.ingestSelloutImage(file, file.name || 'ไฟล์ที่เลือก');
+    },
+    onSelloutPaste(e) {
+      const file = fileFromClipboard(e);
       if (!file) return;
-      this.selloutFileName = file.name;
+      e.preventDefault();
+      this.ingestSelloutImage(file, 'วางจากคลิปบอร์ด');
+    },
+    onSelloutDrop(e) {
+      const file = fileFromDataTransfer(e.dataTransfer);
+      if (!file) return;
+      this.ingestSelloutImage(file, file.name || 'ลากวาง');
+    },
+    async ingestSelloutImage(file, label) {
+      if (!file) return;
+      this.selloutFileName = label || file.name || 'รูปจากคลิปบอร์ด';
       this.selloutErr = '';
       this.selloutOkMsg = '';
       this.selloutOcrOk = false;
+      if (this.selloutPreview) { try { URL.revokeObjectURL(this.selloutPreview); } catch {} }
       this.selloutPreview = URL.createObjectURL(file);
       this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป…';
       try {
@@ -2284,9 +2309,9 @@ function app() {
         this.selloutOcrMsg = this.selloutOcrOk
           ? 'อ่านรูปแล้ว — ตรวจชื่อ/รุ่น/OP ก่อนกดบันทึก'
           : 'อ่านรูปได้บางส่วน — กรอกช่องที่ว่างเองได้';
-      } catch (e) {
+      } catch (err) {
         this.selloutOcrOk = false;
-        this.selloutOcrMsg = 'อ่านรูปอัตโนมัติไม่ได้ — กรอกมือได้ (' + (e.message || e) + ')';
+        this.selloutOcrMsg = 'อ่านรูปอัตโนมัติไม่ได้ — กรอกมือได้ (' + (err.message || err) + ')';
       }
     },
     async saveSellout() {
@@ -2706,6 +2731,32 @@ function emptySelloutForm() {
     name: '', phone: '', province: '', op: '', sellDate: '', installDate: '',
     category: '', model: '', quantity: '1', amount: '', policy: '', remark: ''
   };
+}
+
+function fileFromClipboard(e) {
+  const cd = (e && e.clipboardData) || (window.clipboardData || null);
+  if (!cd) return null;
+  return fileFromDataTransfer(cd);
+}
+
+function fileFromDataTransfer(dt) {
+  if (!dt) return null;
+  if (dt.files && dt.files.length) {
+    for (let i = 0; i < dt.files.length; i++) {
+      if (dt.files[i] && String(dt.files[i].type || '').indexOf('image') === 0) return dt.files[i];
+    }
+  }
+  const items = dt.items;
+  if (items) {
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it && String(it.type || '').indexOf('image') === 0) {
+        const blob = it.getAsFile ? it.getAsFile() : null;
+        if (blob) return blob;
+      }
+    }
+  }
+  return null;
 }
 
 function loadTesseract() {

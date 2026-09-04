@@ -48,6 +48,9 @@
 //  M=E-Promoter (WUTTICHAI.P) N=Remark
 //  ไม่มีคอลัมน์ Status — ตั้ง Purchased อัตโนมัติ (ยกเลิก/ปฏิเสธเครดิตแยกสถานะ)
 //  ดึงเฉพาะ promoter=POND (กัน CRM WUTTICHAI N. ดึงชีตนี้)
+//
+//  [ลงยอดขาย] action=addSellout · POND เท่านั้น · เขียนแถวใหม่ M=WUTTICHAI.P
+//  กัน OP ซ้ำ · ต้อง Redeploy Web App หลังอัป Code.gs
 // ════════════════════════════════════════════════════════
 
 var SPREADSHEET_ID = '1EUfdN0N05b-R2sAWgCraTxkMtyfvQEAqUNbNUZ9D7ps'; // ก.ย. 2569
