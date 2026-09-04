@@ -899,8 +899,8 @@ function addSellout(p, promoter) {
 function withKhun(name) {
   name = clean(name);
   if (!name) return '';
-  if (name.indexOf('คุณ') === 0) return name;
-  return 'คุณ' + name;
+  name = name.replace(/^คุณ\s*/, '');
+  return 'คุณ ' + name;
 }
 
 function selloutRowHas(row) {
