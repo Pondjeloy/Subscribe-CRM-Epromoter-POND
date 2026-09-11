@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v66</title>
+<title>LG Subscribe CRM · POND · v67</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1402,7 +1402,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v66 · แก้ช่อง Policy จากสกรีน OSMS';
+const CRM_BUILD       = '11 ก.ย. 69 v67 · Policy [9.9]VISIT_7Y_12M_PRO_99(1M)';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2826,23 +2826,39 @@ function findThaiProvince(s) {
   return found;
 }
 
+function extractOsmsPolicyCode(s) {
+  const raw = String(s || '');
+  const compact = raw.replace(/\s+/g, '');
+  if (!compact) return '';
+  const m = compact.match(/\[[0-9.]+\](?:VISIT|SELF)_[A-Z0-9_]+(?:\([A-Z0-9]+\))?/i)
+    || compact.match(/\[?[0-9]+\.[0-9]+\](?:VISIT|SELF)_[A-Z0-9_]+(?:\([A-Z0-9]+\))?/i)
+    || compact.match(/(?:VISIT|SELF)_\d+Y_\d+M_[A-Z0-9_]+(?:\([A-Z0-9]+\))?/i)
+    || raw.match(/NOSERVICE_[A-Z0-9_%().]+/i)
+    || compact.match(/NOSERVICE[_A-Z0-9%().]+/i)
+    || compact.match(/SUBSCRIBE[_A-Z0-9%().]+/i);
+  if (!m) return '';
+  let c = m[0].replace(/\s+/g, '');
+  if (!/\[[0-9.]+\]/i.test(c) && !/(?:VISIT|SELF)_\d+Y_\d+M/i.test(c)) {
+    c = c.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
+  }
+  return c.length >= 8 ? c : '';
+}
+
 function cleanOsmsPolicyValue(s) {
   let v = String(s || '').replace(/\s+/g, ' ').trim();
   if (!v) return '';
   v = v.replace(/Rental Fee.*$/i, '').replace(/ค่าเช่า.*$/, '').trim();
-  const code = v.match(/((?:NO\s*SERVICE|NOSERVICE|SUBSCRIBE)[A-Z0-9_%().-]*)/i);
-  if (code) {
-    let c = code[1].replace(/\s+/g, '');
-    c = c.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
-    return c.length >= 8 ? c : '';
-  }
-  const tok = v.split(/\s+/).find(t => /_/.test(t) && /[A-Z]/i.test(t) && t.length >= 8);
+  const extracted = extractOsmsPolicyCode(v);
+  if (extracted) return extracted;
+  const tok = v.split(/\s+/).find(t => /_/.test(t) && /(?:VISIT|SELF|PRO_|NOSERVICE)/i.test(t) && t.length >= 8);
   if (tok) return tok.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
   return '';
 }
 
 function grabOsmsPolicy(text) {
   const raw = String(text || '');
+  const fromAll = extractOsmsPolicyCode(raw);
+  if (fromAll) return fromAll;
   const lines = raw.split(/\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
   const labelRe = /นโยบายการกำหนด|Pricing Policy|Price Policy|Policy Name/i;
   for (let i = 0; i < lines.length; i++) {
@@ -2856,14 +2872,6 @@ function grabOsmsPolicy(text) {
       if (v) return v;
     }
   }
-  const segs = raw.replace(/\s+/g, '').split(/RentalFeeTotal|RentalFee|ค่าเช่า/i);
-  for (let i = 0; i < segs.length; i++) {
-    const m = segs[i].match(/NOSERVICE[_A-Z0-9%().]+/i)
-      || segs[i].match(/SUBSCRIBE[_A-Z0-9%().]+/i);
-    if (!m) continue;
-    let v = m[0].replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
-    if (v.length >= 8) return v;
-  }
   return '';
 }
 
@@ -2876,6 +2884,8 @@ function grabRentalFeeTotal(text) {
       || lines[i].match(/ค่าเช่า(?:รวม|ทั้งหมด|Total)?[^\d\n]{0,12}(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{2,6}(?:\.\d+)?)/);
     if (same) return same[1];
     const nxt = lines[i + 1] || '';
+    const endAmt = nxt.match(/ (\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{2,6}(?:\.\d+)?)\s*$/);
+    if (endAmt) return endAmt[1];
     const all = [];
     nxt.replace(moneyRe, (m) => { all.push(m); return m; });
     if (all.length) return all[all.length - 1];
