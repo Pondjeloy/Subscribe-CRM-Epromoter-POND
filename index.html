@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v64</title>
+<title>LG Subscribe CRM · POND · v65</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1402,7 +1402,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v64 · OCR ชุด 4 ก.ย. เป๊ะ';
+const CRM_BUILD       = '11 ก.ย. 69 v65 · จังหวัด Policy Rental Fee Total';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2803,6 +2803,29 @@ function loadTesseract() {
   });
 }
 
+const TH_PROVINCES = [
+  'กรุงเทพมหานคร','กระบี่','กาญจนบุรี','กาฬสินธุ์','กำแพงเพชร','ขอนแก่น','จันทบุรี','ฉะเชิงเทรา','ชลบุรี','ชัยนาท',
+  'ชัยภูมิ','ชุมพร','เชียงราย','เชียงใหม่','ตรัง','ตราด','ตาก','นครนายก','นครปฐม','นครพนม',
+  'นครราชสีมา','นครศรีธรรมราช','นครสวรรค์','นนทบุรี','นราธิวาส','น่าน','บึงกาฬ','บุรีรัมย์','ปทุมธานี','ประจวบคีรีขันธ์',
+  'ปราจีนบุรี','ปัตตานี','พระนครศรีอยุธยา','พะเยา','พังงา','พัทลุง','พิจิตร','พิษณุโลก','เพชรบุรี','เพชรบูรณ์',
+  'แพร่','ภูเก็ต','มหาสารคาม','มุกดาหาร','แม่ฮ่องสอน','ยโสธร','ยะลา','ร้อยเอ็ด','ระนอง','ระยอง',
+  'ราชบุรี','ลพบุรี','ลำปาง','ลำพูน','เลย','ศรีสะเกษ','สกลนคร','สงขลา','สตูล','สมุทรปราการ',
+  'สมุทรสงคราม','สมุทรสาคร','สระแก้ว','สระบุรี','สิงห์บุรี','สุโขทัย','สุพรรณบุรี','สุราษฎร์ธานี','สุรินทร์','หนองคาย',
+  'หนองบัวลำภู','อ่างทอง','อำนาจเจริญ','อุดรธานี','อุตรดิตถ์','อุทัยธานี','อุบลราชธานี'
+];
+
+function findThaiProvince(s) {
+  const t = String(s || '');
+  if (!t) return '';
+  if (/กรุงเทพ/.test(t) || /\bBangkok\b/i.test(t)) return 'กรุงเทพมหานคร';
+  let found = '';
+  for (let i = 0; i < TH_PROVINCES.length; i++) {
+    const p = TH_PROVINCES[i];
+    if (p !== 'กรุงเทพมหานคร' && t.indexOf(p) >= 0 && p.length > found.length) found = p;
+  }
+  return found;
+}
+
 function parseOsmsContract(raw) {
   const text = String(raw || '').replace(/\u00a0/g, ' ').replace(/\r/g, '\n');
   const grab = (re) => {
@@ -2827,12 +2850,12 @@ function parseOsmsContract(raw) {
   if (ctDate.length) sellDate = ctDate[3] + '/' + ctDate[2] + '/20' + ctDate[1];
   let name = after(/ชื่อลูกค้า/, /ประเภทลูกค้า|Individual|ที่อยู่|บันทึก/);
   name = name.replace(/บันทึก/g, '').replace(/\bIndividual\b/ig, '').trim();
-  const addr = after(/ที่อยู่สำหรับติดตั้ง|ที่อยู่/, /หมวดหมู่|Subscription|สถานะ/);
-  let province = '';
-  if (/กรุงเทพ/.test(addr)) province = 'กรุงเทพมหานคร';
-  else {
-    const pv = addr.match(/(?:จังหวัด|จ\.)\s*([ก-ฮ]{2,20})/);
-    if (pv) province = pv[1];
+  const addr = after(/ที่อยู่สำหรับติดตั้ง|ที่อยู่/, /หมวดหมู่|Subscription|สถานะ|นโยบาย|Policy|Rental Fee/);
+  const provinceField = after(/จังหวัด|\bProvince\b/, /รหัสไปรษณีย์|ประเทศ|หมวดหมู่|Subscription|สถานะ|นโยบาย|Policy|โทร|เบอร์/);
+  let province = findThaiProvince(provinceField) || findThaiProvince(addr) || findThaiProvince(text);
+  if (!province) {
+    const pv = (provinceField || addr).match(/(?:จังหวัด|จ\.)\s*([\u0E00-\u0E7F]{2,30})/);
+    if (pv) province = pv[1].replace(/[0-9].*$/, '').trim();
   }
   const itemRaw = grab(/BOUNCE[^\n]+/i)
     || after(/(?:^|\n)\s*รายการ\s+/, /วันที่|ระยะเวลา|60Month/)
@@ -2842,10 +2865,14 @@ function parseOsmsContract(raw) {
     || grab(/Home Audio[^\n]*/i)
     || grab(/Wireless Speaker[^\n]*/i);
   const category = mapOsmsCategory(typeRaw + ' ' + model);
+  const nospace = text.replace(/\s+/g, '');
   const policy = grab(/NOSERVICE_[A-Z0-9_%().]+/i)
-    || after(/นโยบายการกำหนดราคา/, /ค่าเช่า|จำนวนเงิน|ชื่อโปร/);
-  const amount = grab(/ค่าเช่า[^\d]{0,16}(\d+(?:\.\d+)?)/)
-    || grab(/Rental Fee[^\d]{0,16}(\d+(?:\.\d+)?)/);
+    || ((nospace.match(/NOSERVICE_[A-Z0-9_%().]+/i) || [])[0] || '')
+    || after(/นโยบายการกำหนด(?:ราคา)?|\bPricing Policy\b|\bPolicy Name\b|\bPolicy\b/, /ค่าเช่า|Rental Fee|จำนวนเงิน|ชื่อโปร|Quantity|จำนวน/);
+  const amountRaw = grab(/Rental Fee Total[^\d]{0,24}(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)/i)
+    || grab(/ค่าเช่า(?:รวม|ทั้งหมด|Total)?[^\d]{0,20}(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)/)
+    || grab(/Rental Fee[^\d]{0,16}(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)/i);
+  const amount = String(amountRaw || '').replace(/,/g, '');
   return {
     name, phone: '', province, op: ct || cu,
     sellDate, installDate: install,
