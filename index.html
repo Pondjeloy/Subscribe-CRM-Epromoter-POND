@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v67</title>
+<title>LG Subscribe CRM · POND · v68</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1402,7 +1402,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v67 · Policy [9.9]VISIT_7Y_12M_PRO_99(1M)';
+const CRM_BUILD       = '11 ก.ย. 69 v68 · Policy = ข้อความหลังนโยบายการกำหนดราคา';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2826,49 +2826,34 @@ function findThaiProvince(s) {
   return found;
 }
 
-function extractOsmsPolicyCode(s) {
-  const raw = String(s || '');
-  const compact = raw.replace(/\s+/g, '');
-  if (!compact) return '';
-  const m = compact.match(/\[[0-9.]+\](?:VISIT|SELF)_[A-Z0-9_]+(?:\([A-Z0-9]+\))?/i)
-    || compact.match(/\[?[0-9]+\.[0-9]+\](?:VISIT|SELF)_[A-Z0-9_]+(?:\([A-Z0-9]+\))?/i)
-    || compact.match(/(?:VISIT|SELF)_\d+Y_\d+M_[A-Z0-9_]+(?:\([A-Z0-9]+\))?/i)
-    || raw.match(/NOSERVICE_[A-Z0-9_%().]+/i)
-    || compact.match(/NOSERVICE[_A-Z0-9%().]+/i)
-    || compact.match(/SUBSCRIBE[_A-Z0-9%().]+/i);
-  if (!m) return '';
-  let c = m[0].replace(/\s+/g, '');
-  if (!/\[[0-9.]+\]/i.test(c) && !/(?:VISIT|SELF)_\d+Y_\d+M/i.test(c)) {
-    c = c.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
-  }
-  return c.length >= 8 ? c : '';
+function isOsmsOtherFieldLabel(s) {
+  const v = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!v) return true;
+  return /^(นโยบายการกำหนด(?:ราคา)?|ราคา|Pricing Policy|Price Policy|Policy Name|Policy|Rental Fee(?: Total)?|ค่าเช่า|จำนวน(?:เงิน)?|Quantity|ชื่อโปร|หมวดหมู่|Subscription|สถานะ)$/i.test(v);
 }
 
-function cleanOsmsPolicyValue(s) {
+function policyTextAfterLabel(s) {
   let v = String(s || '').replace(/\s+/g, ' ').trim();
   if (!v) return '';
-  v = v.replace(/Rental Fee.*$/i, '').replace(/ค่าเช่า.*$/, '').trim();
-  const extracted = extractOsmsPolicyCode(v);
-  if (extracted) return extracted;
-  const tok = v.split(/\s+/).find(t => /_/.test(t) && /(?:VISIT|SELF|PRO_|NOSERVICE)/i.test(t) && t.length >= 8);
-  if (tok) return tok.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
-  return '';
+  v = v.replace(/^(Pricing Policy|Price Policy|Policy Name|Policy)\s*[:：\-]*\s*/i, '').trim();
+  v = v.replace(/\s+Rental Fee(?: Total)?.*$/i, '').replace(/\s+ค่าเช่า.*$/, '').trim();
+  v = v.replace(/\s+\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*$/, '').trim();
+  if (isOsmsOtherFieldLabel(v) || /^ราคา$/i.test(v)) return '';
+  if (/_/.test(v) || /\[/.test(v) || /\(/.test(v)) v = v.replace(/\s+/g, '');
+  return v;
 }
 
 function grabOsmsPolicy(text) {
   const raw = String(text || '');
-  const fromAll = extractOsmsPolicyCode(raw);
-  if (fromAll) return fromAll;
   const lines = raw.split(/\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
-  const labelRe = /นโยบายการกำหนด|Pricing Policy|Price Policy|Policy Name/i;
+  const labelRe = /นโยบายการกำหนด(?:ราคา)?/;
   for (let i = 0; i < lines.length; i++) {
-    if (!labelRe.test(lines[i]) && !/^Policy\b/i.test(lines[i])) continue;
-    const same = lines[i]
-      .replace(/^.*?(นโยบายการกำหนด(?:ราคา)?|Pricing Policy|Price Policy|Policy Name|\bPolicy\b)\s*[:：\-]*\s*/i, '')
-      .trim();
+    const m = lines[i].match(labelRe);
+    if (!m) continue;
+    const same = lines[i].slice(m.index + m[0].length).replace(/^[\s:：\-]+/, '');
     const cands = [same, lines[i + 1] || '', lines[i + 2] || ''];
     for (let c = 0; c < cands.length; c++) {
-      const v = cleanOsmsPolicyValue(cands[c]);
+      const v = policyTextAfterLabel(cands[c]);
       if (v) return v;
     }
   }
