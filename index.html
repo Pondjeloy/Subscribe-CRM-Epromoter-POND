@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v63</title>
+<title>LG Subscribe CRM · POND · v64</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -379,10 +379,6 @@
       <img :src="selloutPreview" alt="preview" class="w-full max-h-40 object-contain"/>
     </div>
     <div x-show="selloutOcrMsg" class="mb-3 text-[13px]" :class="selloutOcrOk ? 'text-emerald-700' : 'text-slate-500'" x-text="selloutOcrMsg"></div>
-    <details x-show="selloutOcrText" class="mb-3 rounded-xl bg-slate-50 ring-1 ring-slate-200 px-3 py-2">
-      <summary class="text-[12px] font-semibold text-slate-500 cursor-pointer">ข้อความที่อ่านได้จากรูป</summary>
-      <pre class="mt-2 text-[11px] text-slate-600 whitespace-pre-wrap max-h-32 overflow-auto" x-text="selloutOcrText"></pre>
-    </details>
     <div class="grid grid-cols-2 gap-3">
       <label class="col-span-2 text-[12px] font-bold text-slate-500">ชื่อลูกค้า
         <input x-model="selloutForm.name" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800" placeholder="ชื่อ-นามสกุล"/>
@@ -1406,7 +1402,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v63 · คืน OCR แบบ 4 ก.ย.';
+const CRM_BUILD       = '11 ก.ย. 69 v64 · OCR ชุด 4 ก.ย. เป๊ะ';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2308,24 +2304,19 @@ function app() {
       this.selloutErr = '';
       this.selloutOkMsg = '';
       this.selloutOcrOk = false;
-      this.selloutOcrText = '';
       if (this.selloutPreview) { try { URL.revokeObjectURL(this.selloutPreview); } catch {} }
       this.selloutPreview = URL.createObjectURL(file);
       this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป…';
       try {
         const Tesseract = await loadTesseract();
         const result = await Tesseract.recognize(file, 'tha+eng', {
-          workerBlobURL: true,
-          workerPath: ocrAssetUrl('worker.min.js'),
           logger: m => {
             if (m && m.status === 'recognizing text' && m.progress != null) {
               this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป ' + Math.round(m.progress * 100) + '%';
             }
           }
         });
-        const text = result && result.data && result.data.text;
-        this.selloutOcrText = String(text || '').trim();
-        const parsed = parseOsmsContract(this.selloutOcrText);
+        const parsed = parseOsmsContract(result && result.data && result.data.text);
         if (parsed.name) parsed.name = parsed.name.replace(/^คุณ\s*/, '');
         if (parsed.name) parsed.name = 'คุณ ' + parsed.name;
         this.selloutForm = Object.assign(emptySelloutForm(), parsed);
@@ -2801,11 +2792,6 @@ function fileFromDataTransfer(dt) {
   return null;
 }
 
-function ocrAssetUrl(file) {
-  try { return new URL('assets/ocr/' + file, document.baseURI || location.href).href; }
-  catch (e) { return 'assets/ocr/' + file; }
-}
-
 function loadTesseract() {
   if (window.Tesseract) return Promise.resolve(window.Tesseract);
   return new Promise((resolve, reject) => {
@@ -2818,11 +2804,7 @@ function loadTesseract() {
 }
 
 function parseOsmsContract(raw) {
-  const text = String(raw || '')
-    .replace(/\u00a0/g, ' ')
-    .replace(/\r/g, '\n')
-    .replace(/\bC\s*T\s*([0-9][0-9\s]{8,})/gi, (_, d) => 'CT' + d.replace(/\s+/g, ''))
-    .replace(/\bC\s*U\s*([0-9][0-9\s]{5,})/gi, (_, d) => 'CU' + d.replace(/\s+/g, ''));
+  const text = String(raw || '').replace(/\u00a0/g, ' ').replace(/\r/g, '\n');
   const grab = (re) => {
     const m = text.match(re);
     if (!m) return '';
@@ -2843,10 +2825,8 @@ function parseOsmsContract(raw) {
   let sellDate = '';
   const ctDate = (ct.match(/^CT(\d{2})(\d{2})(\d{2})/) || []);
   if (ctDate.length) sellDate = ctDate[3] + '/' + ctDate[2] + '/20' + ctDate[1];
-  let name = after(/ชื่อลูกค้า|Customer\s*Name|ชื่อ-นามสกุล/, /ประเภทลูกค้า|Individual|ที่อยู่|บันทึก|โทร|เบอร์/);
+  let name = after(/ชื่อลูกค้า/, /ประเภทลูกค้า|Individual|ที่อยู่|บันทึก/);
   name = name.replace(/บันทึก/g, '').replace(/\bIndividual\b/ig, '').trim();
-  const phone = grab(/(?:โทร(?:ศัพท์)?|เบอร์|Tel|Mobile|Phone)[^\d]{0,16}(0\d[\d\s-]{7,12})/)
-    || grab(/\b(0[689]\d{8})\b/);
   const addr = after(/ที่อยู่สำหรับติดตั้ง|ที่อยู่/, /หมวดหมู่|Subscription|สถานะ/);
   let province = '';
   if (/กรุงเทพ/.test(addr)) province = 'กรุงเทพมหานคร';
@@ -2867,7 +2847,7 @@ function parseOsmsContract(raw) {
   const amount = grab(/ค่าเช่า[^\d]{0,16}(\d+(?:\.\d+)?)/)
     || grab(/Rental Fee[^\d]{0,16}(\d+(?:\.\d+)?)/);
   return {
-    name, phone: String(phone || '').replace(/[\s-]/g, ''), province, op: ct || cu,
+    name, phone: '', province, op: ct || cu,
     sellDate, installDate: install,
     category, model,
     quantity: '1', amount,
