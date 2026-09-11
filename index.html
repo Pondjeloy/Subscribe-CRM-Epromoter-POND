@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v65</title>
+<title>LG Subscribe CRM · POND · v66</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1402,7 +1402,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v65 · จังหวัด Policy Rental Fee Total';
+const CRM_BUILD       = '11 ก.ย. 69 v66 · แก้ช่อง Policy จากสกรีน OSMS';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2826,6 +2826,64 @@ function findThaiProvince(s) {
   return found;
 }
 
+function cleanOsmsPolicyValue(s) {
+  let v = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!v) return '';
+  v = v.replace(/Rental Fee.*$/i, '').replace(/ค่าเช่า.*$/, '').trim();
+  const code = v.match(/((?:NO\s*SERVICE|NOSERVICE|SUBSCRIBE)[A-Z0-9_%().-]*)/i);
+  if (code) {
+    let c = code[1].replace(/\s+/g, '');
+    c = c.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
+    return c.length >= 8 ? c : '';
+  }
+  const tok = v.split(/\s+/).find(t => /_/.test(t) && /[A-Z]/i.test(t) && t.length >= 8);
+  if (tok) return tok.replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
+  return '';
+}
+
+function grabOsmsPolicy(text) {
+  const raw = String(text || '');
+  const lines = raw.split(/\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const labelRe = /นโยบายการกำหนด|Pricing Policy|Price Policy|Policy Name/i;
+  for (let i = 0; i < lines.length; i++) {
+    if (!labelRe.test(lines[i]) && !/^Policy\b/i.test(lines[i])) continue;
+    const same = lines[i]
+      .replace(/^.*?(นโยบายการกำหนด(?:ราคา)?|Pricing Policy|Price Policy|Policy Name|\bPolicy\b)\s*[:：\-]*\s*/i, '')
+      .trim();
+    const cands = [same, lines[i + 1] || '', lines[i + 2] || ''];
+    for (let c = 0; c < cands.length; c++) {
+      const v = cleanOsmsPolicyValue(cands[c]);
+      if (v) return v;
+    }
+  }
+  const segs = raw.replace(/\s+/g, '').split(/RentalFeeTotal|RentalFee|ค่าเช่า/i);
+  for (let i = 0; i < segs.length; i++) {
+    const m = segs[i].match(/NOSERVICE[_A-Z0-9%().]+/i)
+      || segs[i].match(/SUBSCRIBE[_A-Z0-9%().]+/i);
+    if (!m) continue;
+    let v = m[0].replace(/(\D)\d{3,}(?:\.\d+)?$/, '$1');
+    if (v.length >= 8) return v;
+  }
+  return '';
+}
+
+function grabRentalFeeTotal(text) {
+  const lines = String(text || '').split(/\n/);
+  const moneyRe = /(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{3,6}(?:\.\d+)?)/g;
+  for (let i = 0; i < lines.length; i++) {
+    if (!/Rental Fee Total|ค่าเช่า/i.test(lines[i])) continue;
+    const same = lines[i].match(/Rental Fee Total[^\d\n]{0,12}(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{2,6}(?:\.\d+)?)/i)
+      || lines[i].match(/ค่าเช่า(?:รวม|ทั้งหมด|Total)?[^\d\n]{0,12}(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{2,6}(?:\.\d+)?)/);
+    if (same) return same[1];
+    const nxt = lines[i + 1] || '';
+    const all = [];
+    nxt.replace(moneyRe, (m) => { all.push(m); return m; });
+    if (all.length) return all[all.length - 1];
+  }
+  const m = String(text || '').match(/Rental Fee[^\n\d]{0,12}(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{2,6}(?:\.\d+)?)/i);
+  return m ? m[1] : '';
+}
+
 function parseOsmsContract(raw) {
   const text = String(raw || '').replace(/\u00a0/g, ' ').replace(/\r/g, '\n');
   const grab = (re) => {
@@ -2865,13 +2923,8 @@ function parseOsmsContract(raw) {
     || grab(/Home Audio[^\n]*/i)
     || grab(/Wireless Speaker[^\n]*/i);
   const category = mapOsmsCategory(typeRaw + ' ' + model);
-  const nospace = text.replace(/\s+/g, '');
-  const policy = grab(/NOSERVICE_[A-Z0-9_%().]+/i)
-    || ((nospace.match(/NOSERVICE_[A-Z0-9_%().]+/i) || [])[0] || '')
-    || after(/นโยบายการกำหนด(?:ราคา)?|\bPricing Policy\b|\bPolicy Name\b|\bPolicy\b/, /ค่าเช่า|Rental Fee|จำนวนเงิน|ชื่อโปร|Quantity|จำนวน/);
-  const amountRaw = grab(/Rental Fee Total[^\d]{0,24}(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)/i)
-    || grab(/ค่าเช่า(?:รวม|ทั้งหมด|Total)?[^\d]{0,20}(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)/)
-    || grab(/Rental Fee[^\d]{0,16}(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)/i);
+  const policy = grabOsmsPolicy(text);
+  const amountRaw = grabRentalFeeTotal(text);
   const amount = String(amountRaw || '').replace(/,/g, '');
   return {
     name, phone: '', province, op: ct || cu,
