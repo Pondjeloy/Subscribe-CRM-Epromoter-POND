@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v61</title>
+<title>LG Subscribe CRM · POND · v62</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1405,7 +1405,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v61 · แก้ OCR ลงยอดขาย';
+const CRM_BUILD       = '11 ก.ย. 69 v62 · OCR worker โดเมนเดียวกัน';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2871,20 +2871,29 @@ function fileToOcrCanvas(file) {
   });
 }
 
-const TESS_CDNS = [
-  {
-    script: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
-    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0/',
-  },
-  {
-    script: 'https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js',
-    workerPath: 'https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js',
-    corePath: 'https://unpkg.com/tesseract.js-core@5.1.0',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0/',
-  },
-];
+function ocrAssetUrl(file) {
+  try { return new URL('assets/ocr/' + file, document.baseURI || location.href).href; }
+  catch (e) { return 'assets/ocr/' + file; }
+}
+
+function tessSources() {
+  return [
+    {
+      script: ocrAssetUrl('tesseract.min.js'),
+      workerPath: ocrAssetUrl('worker.min.js'),
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0/',
+      workerBlobURL: false,
+    },
+    {
+      script: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0/',
+      workerBlobURL: true,
+    },
+  ];
+}
 
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
@@ -2905,7 +2914,7 @@ let tessLogger = () => {};
 async function loadTesseract() {
   if (window.Tesseract) return window.Tesseract;
   let last = null;
-  for (const cdn of TESS_CDNS) {
+  for (const cdn of tessSources()) {
     try { return await loadScriptOnce(cdn.script); }
     catch (e) { last = e; }
   }
@@ -2920,12 +2929,12 @@ async function recognizeSelloutImage(image, onLog) {
   if (!tessWorkerPromise) {
     tessWorkerPromise = (async () => {
       let last = null;
-      for (const cdn of TESS_CDNS) {
+      for (const cdn of tessSources()) {
         try {
           const worker = await Promise.race([
             Tesseract.createWorker('tha+eng', 1, {
               logger: m => tessLogger(m),
-              workerBlobURL: false,
+              workerBlobURL: cdn.workerBlobURL !== false,
               workerPath: cdn.workerPath,
               corePath: cdn.corePath,
               langPath: cdn.langPath,
