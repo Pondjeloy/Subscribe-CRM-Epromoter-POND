@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v60</title>
+<title>LG Subscribe CRM · POND · v61</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -358,27 +358,30 @@
     <div class="flex items-center justify-between mb-4">
       <div>
         <div class="font-display font-bold text-[18px]">ลงยอดขาย · Sell out POND</div>
-        <div class="text-[13px] text-slate-500 mt-0.5">ก็อปสกรีน OSMS แล้วกด Ctrl+V — ลงชีตตั้งแต่แถว 153 · No. เริ่ม 1 · Remark กรอกเอง</div>
+        <div class="text-[13px] text-slate-500 mt-0.5">วางสกรีน OSMS หรือเลือกไฟล์ JPG/PNG — ลงชีตตั้งแต่แถว 153 · No. เริ่ม 1 · Remark กรอกเอง</div>
       </div>
       <button @click="closeSelloutModal()" class="h-9 w-9 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-100 transition text-xl">×</button>
     </div>
-    <div class="rounded-xl ring-1 ring-dashed ring-emerald-300 bg-emerald-50/70 px-4 py-4 text-center mb-3 outline-none"
+    <div class="rounded-xl ring-1 ring-dashed ring-emerald-300 bg-emerald-50/70 px-4 py-4 text-center mb-3 outline-none cursor-pointer"
       tabindex="0"
       x-ref="selloutPasteBox"
+      @click="$refs.selloutFileInput && $refs.selloutFileInput.click()"
       @paste.prevent="onSelloutPaste($event)"
       @dragover.prevent
       @drop.prevent="onSelloutDrop($event)">
-      <div class="text-[13px] font-semibold text-emerald-800">ก็อปรูป แล้วกด Ctrl+V ที่นี่</div>
-      <div class="text-[12px] text-emerald-700/80 mt-0.5" x-text="selloutFileName || 'Win+Shift+S หรือก็อปจาก LINE แล้ววาง · ลากวางได้'"></div>
-      <label class="mt-2 inline-block text-[12px] font-semibold text-slate-500 hover:underline cursor-pointer">
-        <input type="file" accept="image/*" class="hidden" @change="onSelloutFile($event)"/>
-        หรือเลือกไฟล์ (ถ้าเครื่องอนุญาต)
-      </label>
+      <div class="text-[13px] font-semibold text-emerald-800">คลิกเพื่อเลือกไฟล์รูป · หรือ Ctrl+V / ลากวาง</div>
+      <div class="text-[12px] text-emerald-700/80 mt-0.5" x-text="selloutFileName || 'รองรับ JPG PNG WebP จาก OSMS / LINE'"></div>
+      <input x-ref="selloutFileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.bmp"
+        class="hidden" @click.stop @change="onSelloutFile($event)"/>
     </div>
     <div x-show="selloutPreview" class="mb-3 rounded-xl overflow-hidden ring-1 ring-slate-200 bg-slate-50 max-h-40">
       <img :src="selloutPreview" alt="preview" class="w-full max-h-40 object-contain"/>
     </div>
     <div x-show="selloutOcrMsg" class="mb-3 text-[13px]" :class="selloutOcrOk ? 'text-emerald-700' : 'text-slate-500'" x-text="selloutOcrMsg"></div>
+    <details x-show="selloutOcrText" class="mb-3 rounded-xl bg-slate-50 ring-1 ring-slate-200 px-3 py-2">
+      <summary class="text-[12px] font-semibold text-slate-500 cursor-pointer">ข้อความที่อ่านได้จากรูป</summary>
+      <pre class="mt-2 text-[11px] text-slate-600 whitespace-pre-wrap max-h-32 overflow-auto" x-text="selloutOcrText"></pre>
+    </details>
     <div class="grid grid-cols-2 gap-3">
       <label class="col-span-2 text-[12px] font-bold text-slate-500">ชื่อลูกค้า
         <input x-model="selloutForm.name" class="mt-1 w-full h-10 px-3 rounded-xl bg-white ring-1 ring-slate-200 text-[14px] text-slate-800" placeholder="ชื่อ-นามสกุล"/>
@@ -1402,7 +1405,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v60 · การ์ดช่องทางทางการ';
+const CRM_BUILD       = '11 ก.ย. 69 v61 · แก้ OCR ลงยอดขาย';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1538,6 +1541,7 @@ function app() {
     /* ── ลงยอดขาย OSMS ── */
     selloutModal: false, selloutSaving: false, selloutErr: '', selloutOkMsg: '',
     selloutFileName: '', selloutPreview: '', selloutOcrMsg: '', selloutOcrOk: false,
+    selloutOcrText: '',
     selloutForm: emptySelloutForm(),
 
     /* ── Activity picker ── */
@@ -2271,6 +2275,7 @@ function app() {
       this.selloutOkMsg = '';
       this.selloutOcrMsg = '';
       this.selloutOcrOk = false;
+      this.selloutOcrText = '';
       this.selloutFileName = '';
       this.selloutPreview = '';
       this.selloutForm = emptySelloutForm();
@@ -2298,23 +2303,27 @@ function app() {
     },
     async ingestSelloutImage(file, label) {
       if (!file) return;
+      if (!isImageFile(file)) {
+        this.selloutOcrOk = false;
+        this.selloutOcrMsg = 'ไฟล์นี้ไม่ใช่รูป — เลือก JPG หรือ PNG จากสกรีน OSMS';
+        return;
+      }
       this.selloutFileName = label || file.name || 'รูปจากคลิปบอร์ด';
       this.selloutErr = '';
       this.selloutOkMsg = '';
       this.selloutOcrOk = false;
+      this.selloutOcrText = '';
       if (this.selloutPreview) { try { URL.revokeObjectURL(this.selloutPreview); } catch {} }
       this.selloutPreview = URL.createObjectURL(file);
-      this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป…';
+      this.selloutOcrMsg = 'กำลังเปิดไฟล์รูป…';
       try {
-        const Tesseract = await loadTesseract();
-        const result = await Tesseract.recognize(file, 'tha+eng', {
-          logger: m => {
-            if (m && m.status === 'recognizing text' && m.progress != null) {
-              this.selloutOcrMsg = 'กำลังอ่านข้อความจากรูป ' + Math.round(m.progress * 100) + '%';
-            }
-          }
+        const canvas = await fileToOcrCanvas(file);
+        this.selloutOcrMsg = 'กำลังเตรียมอ่านข้อความจากรูป…';
+        const text = await recognizeSelloutImage(canvas, m => {
+          this.selloutOcrMsg = tessStatusTh(m);
         });
-        const parsed = parseOsmsContract(result && result.data && result.data.text);
+        this.selloutOcrText = String(text || '').trim();
+        const parsed = parseOsmsContract(this.selloutOcrText);
         if (parsed.name) parsed.name = parsed.name.replace(/^คุณ\s*/, '');
         if (parsed.name) parsed.name = 'คุณ ' + parsed.name;
         this.selloutForm = Object.assign(emptySelloutForm(), parsed);
@@ -2322,7 +2331,9 @@ function app() {
         this.selloutOcrOk = filled >= 2;
         this.selloutOcrMsg = this.selloutOcrOk
           ? 'อ่านรูปแล้ว — ตรวจชื่อ/รุ่น/OP ก่อนกดบันทึก'
-          : 'อ่านรูปได้บางส่วน — กรอกช่องที่ว่างเองได้';
+          : (this.selloutOcrText
+            ? 'อ่านรูปได้บางส่วน — กรอกช่องที่ว่างเองได้'
+            : 'อ่านข้อความจากรูปไม่เจอ — กรอกมือได้');
       } catch (err) {
         this.selloutOcrOk = false;
         this.selloutOcrMsg = 'อ่านรูปอัตโนมัติไม่ได้ — กรอกมือได้ (' + (err.message || err) + ')';
@@ -2770,39 +2781,187 @@ function fileFromClipboard(e) {
   return fileFromDataTransfer(cd);
 }
 
+function isImageFile(f) {
+  if (!f) return false;
+  const t = String(f.type || '').toLowerCase();
+  if (t.indexOf('image/') === 0) return true;
+  const n = String(f.name || '').toLowerCase();
+  return /\.(png|jpe?g|webp|gif|bmp|heic|heif)$/.test(n);
+}
+
 function fileFromDataTransfer(dt) {
   if (!dt) return null;
   if (dt.files && dt.files.length) {
     for (let i = 0; i < dt.files.length; i++) {
-      if (dt.files[i] && String(dt.files[i].type || '').indexOf('image') === 0) return dt.files[i];
+      if (isImageFile(dt.files[i])) return dt.files[i];
     }
+    if (dt.files[0]) return dt.files[0];
   }
   const items = dt.items;
   if (items) {
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      if (it && String(it.type || '').indexOf('image') === 0) {
+      if (!it) continue;
+      if (String(it.type || '').indexOf('image') === 0 || String(it.kind || '') === 'file') {
         const blob = it.getAsFile ? it.getAsFile() : null;
-        if (blob) return blob;
+        if (blob && (isImageFile(blob) || String(it.type || '').indexOf('image') === 0)) return blob;
       }
     }
   }
   return null;
 }
 
-function loadTesseract() {
-  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+function tessStatusTh(m) {
+  const s = String((m && m.status) || '');
+  const pct = (m && m.progress != null) ? ' ' + Math.round(m.progress * 100) + '%' : '';
+  if (/loading language|loaded language|downloading/i.test(s)) return 'กำลังโหลดภาษาไทยสำหรับอ่านรูป' + pct;
+  if (/loading tesseract core|loading wasm|loading tesseract/i.test(s)) return 'กำลังโหลดโปรแกรมอ่านรูป' + pct;
+  if (/initializ/i.test(s)) return 'กำลังเตรียมอ่านรูป' + pct;
+  if (/recognizing/i.test(s)) return 'กำลังอ่านข้อความจากรูป' + pct;
+  return 'กำลังอ่านรูป…';
+}
+
+function fileToOcrCanvas(file) {
   return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('ไม่มีไฟล์รูป'));
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (!w || !h) throw new Error('รูปว่าง');
+        const minSide = 1400;
+        const maxSide = 2200;
+        const long = Math.max(w, h);
+        let scale = 1;
+        if (long < minSide) scale = minSide / long;
+        else if (long > maxSide) scale = maxSide / long;
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+          const v = g < 140 ? Math.max(0, g * 0.82) : Math.min(255, 255 - (255 - g) * 0.7);
+          d[i] = d[i + 1] = d[i + 2] = v;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(e);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('เปิดไฟล์รูปไม่ได้ — บันทึกเป็น JPG หรือ PNG แล้วลองใหม่'));
+    };
+    img.src = url;
+  });
+}
+
+const TESS_CDNS = [
+  {
+    script: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0/',
+  },
+  {
+    script: 'https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js',
+    workerPath: 'https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js',
+    corePath: 'https://unpkg.com/tesseract.js-core@5.1.0',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0/',
+  },
+];
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const exists = Array.from(document.scripts).some(s => s.src === src);
+    if (exists && window.Tesseract) return resolve(window.Tesseract);
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload = () => resolve(window.Tesseract);
+    s.src = src;
+    s.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error('โหลด OCR ไม่ครบ'));
     s.onerror = () => reject(new Error('โหลด OCR ไม่ได้'));
     document.head.appendChild(s);
   });
 }
 
+let tessWorker = null;
+let tessWorkerPromise = null;
+let tessLogger = () => {};
+
+async function loadTesseract() {
+  if (window.Tesseract) return window.Tesseract;
+  let last = null;
+  for (const cdn of TESS_CDNS) {
+    try { return await loadScriptOnce(cdn.script); }
+    catch (e) { last = e; }
+  }
+  throw last || new Error('โหลด OCR ไม่ได้');
+}
+
+async function recognizeSelloutImage(image, onLog) {
+  const Tesseract = await loadTesseract();
+  if (!Tesseract || typeof Tesseract.createWorker !== 'function') {
+    throw new Error('OCR ใช้เวอร์ชันนี้ไม่ได้');
+  }
+  if (!tessWorkerPromise) {
+    tessWorkerPromise = (async () => {
+      let last = null;
+      for (const cdn of TESS_CDNS) {
+        try {
+          const worker = await Promise.race([
+            Tesseract.createWorker('tha+eng', 1, {
+              logger: m => tessLogger(m),
+              workerBlobURL: false,
+              workerPath: cdn.workerPath,
+              corePath: cdn.corePath,
+              langPath: cdn.langPath,
+            }),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('โหลดโปรแกรมอ่านรูปนานเกินไป')), 90000))
+          ]);
+          return worker;
+        } catch (e) {
+          last = e;
+        }
+      }
+      throw last || new Error('สร้างตัวอ่านรูปไม่ได้');
+    })();
+  }
+  try {
+    tessLogger = onLog || (() => {});
+    tessWorker = await tessWorkerPromise;
+  } catch (e) {
+    tessWorkerPromise = null;
+    tessWorker = null;
+    throw e;
+  }
+  tessLogger = onLog || (() => {});
+  const result = await Promise.race([
+    tessWorker.recognize(image),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('อ่านรูปนานเกินไป — ลองไฟล์ JPG/PNG ชัดๆ')), 60000))
+  ]);
+  return result && result.data && result.data.text;
+}
+
 function parseOsmsContract(raw) {
-  const text = String(raw || '').replace(/\u00a0/g, ' ').replace(/\r/g, '\n');
+  const text = String(raw || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r/g, '\n')
+    .replace(/\bC\s*T\s*([0-9][0-9\s]{8,})/gi, (_, d) => 'CT' + d.replace(/\s+/g, ''))
+    .replace(/\bC\s*U\s*([0-9][0-9\s]{5,})/gi, (_, d) => 'CU' + d.replace(/\s+/g, ''));
   const grab = (re) => {
     const m = text.match(re);
     if (!m) return '';
@@ -2823,8 +2982,10 @@ function parseOsmsContract(raw) {
   let sellDate = '';
   const ctDate = (ct.match(/^CT(\d{2})(\d{2})(\d{2})/) || []);
   if (ctDate.length) sellDate = ctDate[3] + '/' + ctDate[2] + '/20' + ctDate[1];
-  let name = after(/ชื่อลูกค้า/, /ประเภทลูกค้า|Individual|ที่อยู่|บันทึก/);
+  let name = after(/ชื่อลูกค้า|Customer\s*Name|ชื่อ-นามสกุล/, /ประเภทลูกค้า|Individual|ที่อยู่|บันทึก|โทร|เบอร์/);
   name = name.replace(/บันทึก/g, '').replace(/\bIndividual\b/ig, '').trim();
+  const phone = grab(/(?:โทร(?:ศัพท์)?|เบอร์|Tel|Mobile|Phone)[^\d]{0,16}(0\d[\d\s-]{7,12})/)
+    || grab(/\b(0[689]\d{8})\b/);
   const addr = after(/ที่อยู่สำหรับติดตั้ง|ที่อยู่/, /หมวดหมู่|Subscription|สถานะ/);
   let province = '';
   if (/กรุงเทพ/.test(addr)) province = 'กรุงเทพมหานคร';
@@ -2845,7 +3006,7 @@ function parseOsmsContract(raw) {
   const amount = grab(/ค่าเช่า[^\d]{0,16}(\d+(?:\.\d+)?)/)
     || grab(/Rental Fee[^\d]{0,16}(\d+(?:\.\d+)?)/);
   return {
-    name, phone: '', province, op: ct || cu,
+    name, phone: String(phone || '').replace(/[\s-]/g, ''), province, op: ct || cu,
     sellDate, installDate: install,
     category, model,
     quantity: '1', amount,
