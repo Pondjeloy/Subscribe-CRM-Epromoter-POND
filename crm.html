@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v69</title>
+<title>LG Subscribe CRM · POND · v70</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -114,6 +114,32 @@
     transition:all .15s; white-space:nowrap;
   }
   .filter-chip-count { font-variant-numeric:tabular-nums; font-size:11.5px; font-weight:700; padding:0 .375rem; border-radius:9999px; }
+
+  /* ── Filter rail (left tabs) ── */
+  .crm-list-layout { display:grid; grid-template-columns:248px minmax(0,1fr); gap:16px; align-items:start; }
+  .filter-rail { position:sticky; top:68px; background:#fff; border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; }
+  .filter-rail-head { padding:12px 14px 8px; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#94a3b8; }
+  .filter-rail-tabs { display:flex; flex-direction:column; padding:0 8px 8px; gap:2px; }
+  .filter-rail-tab { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; border:0; background:transparent; text-align:left; font-family:inherit; font-size:13px; font-weight:600; color:#64748b; padding:8px 10px; border-radius:10px; cursor:pointer; }
+  .filter-rail-tab:hover { background:#f8fafc; color:#334155; }
+  .filter-rail-tab.is-active { background:var(--accent-tint); color:#111; }
+  .filter-rail-tab.is-active { box-shadow:inset 3px 0 0 var(--accent); }
+  .filter-rail-dot { width:7px; height:7px; border-radius:99px; background:var(--accent); flex-shrink:0; }
+  .filter-rail-panel { border-top:1px solid #f1f5f9; padding:10px 10px 12px; }
+  .filter-rail-panel .filter-chips { flex-direction:column; align-items:stretch; flex-wrap:nowrap; gap:6px; max-height:min(52vh, 420px); overflow-y:auto; }
+  .filter-rail-panel .filter-slot, .filter-rail-panel .filter-slot-1, .filter-rail-panel .filter-slot-2 { width:100%; }
+  .filter-rail-panel .filter-chip { width:100%; justify-content:space-between; border-radius:10px; height:auto; min-height:2.25rem; }
+  .filter-rail-empty { font-size:12px; color:#94a3b8; padding:8px 4px; }
+  @media (max-width:900px) {
+    .crm-list-layout { grid-template-columns:1fr; }
+    .filter-rail { position:static; }
+    .filter-rail-tabs { flex-direction:row; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:0 8px 8px; }
+    .filter-rail-tab { flex:0 0 auto; white-space:nowrap; box-shadow:none; }
+    .filter-rail-tab.is-active { box-shadow:inset 0 -3px 0 var(--accent); }
+    .filter-rail-panel .filter-chips { flex-direction:row; flex-wrap:wrap; max-height:none; }
+    .filter-rail-panel .filter-slot, .filter-rail-panel .filter-slot-1, .filter-rail-panel .filter-slot-2 { width:auto; }
+    .filter-rail-panel .filter-chip { width:auto; }
+  }
 
   /* ── Work summary ── */
   .summary-rank-bar { height:6px; border-radius:9999px; background:#f1f5f9; overflow:hidden; }
@@ -713,13 +739,36 @@
       </section>
 
       <!-- ── List View ── -->
-      <div class="space-y-4">
+      <div class="crm-list-layout">
 
-        <!-- Status chips -->
-        <section class="space-y-3">
-          <div class="filter-row chips-scroll">
-            <span class="filter-row-label">Status</span>
-            <div class="filter-chips chips-scroll">
+        <aside class="filter-rail">
+          <div class="filter-rail-head">ตัวกรอง</div>
+          <nav class="filter-rail-tabs" aria-label="ตัวกรองรายชื่อ">
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='status' }" @click="setFilterRailTab('status')">
+              <span>Status</span><span class="filter-rail-dot" x-show="filterRailOn('status')" x-cloak></span>
+            </button>
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='payment' }" @click="setFilterRailTab('payment')">
+              <span>ชำระเงิน</span><span class="filter-rail-dot" x-show="filterRailOn('payment')" x-cloak></span>
+            </button>
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='hl' }" @click="setFilterRailTab('hl')">
+              <span>ไฮไลท์รายชื่อ</span><span class="filter-rail-dot" x-show="filterRailOn('hl')" x-cloak></span>
+            </button>
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='activity' }" @click="setFilterRailTab('activity')">
+              <span>บันทึกหมายเหตุ</span><span class="filter-rail-dot" x-show="filterRailOn('activity')" x-cloak></span>
+            </button>
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='convenientDate' }" @click="setFilterRailTab('convenientDate')">
+              <span>วันที่สะดวก</span><span class="filter-rail-dot" x-show="filterRailOn('convenientDate')" x-cloak></span>
+            </button>
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='housing' }" @click="setFilterRailTab('housing')">
+              <span>ที่อยู่</span><span class="filter-rail-dot" x-show="filterRailOn('housing')" x-cloak></span>
+            </button>
+            <button type="button" class="filter-rail-tab" :class="{ 'is-active': filterRailTab==='contactTime' }" @click="setFilterRailTab('contactTime')">
+              <span>ช่วงเวลา</span><span class="filter-rail-dot" x-show="filterRailOn('contactTime')" x-cloak></span>
+            </button>
+          </nav>
+
+          <div class="filter-rail-panel">
+          <div class="filter-chips" x-show="filterRailTab==='status'">
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterStatus('')"
                   class="filter-chip"
@@ -754,12 +803,8 @@
                 </button>
               </template>
             </div>
-          </div>
 
-          <!-- Payment chips -->
-          <div class="filter-row chips-scroll">
-            <span class="filter-row-label">ชำระเงิน</span>
-            <div class="filter-chips chips-scroll">
+          <div class="filter-chips" x-show="filterRailTab==='payment'" x-cloak>
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterPayment('')"
                   class="filter-chip"
@@ -798,12 +843,8 @@
                 </button>
               </template>
             </div>
-          </div>
 
-          <!-- Highlight chips -->
-          <div class="filter-row chips-scroll">
-            <span class="filter-row-label">ไฮไลท์ รายชื่อ</span>
-            <div class="filter-chips chips-scroll">
+          <div class="filter-chips" x-show="filterRailTab==='hl'" x-cloak>
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterHL(null)"
                   class="filter-chip"
@@ -844,12 +885,15 @@
                 </button>
               </template>
             </div>
-          </div>
 
-          <!-- Activity chips -->
-          <div class="filter-row chips-scroll">
-            <span class="filter-row-label">บันทึกหมายเหตุ</span>
-            <div class="filter-chips chips-scroll">
+          <div class="filter-chips" x-show="filterRailTab==='activity'" x-cloak>
+              <button @click="setFilterActivity('')"
+                class="filter-chip"
+                :class="filterActivity==='' ? 'text-white shadow-sm' : 'text-slate-600 bg-white ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-50'"
+                :style="filterActivity==='' ? 'background:var(--accent)' : ''">
+                ทั้งหมด
+                <span class="filter-chip-count" :class="filterActivity==='' ? 'bg-white/20' : 'text-slate-400 bg-slate-100'" x-text="customers.length"></span>
+              </button>
               <template x-for="a in activityFilters" :key="a.key">
                 <button @click="setFilterActivity(a.key)"
                   class="filter-chip"
@@ -863,12 +907,8 @@
                 </button>
               </template>
             </div>
-          </div>
 
-          <!-- วันที่สะดวก (Meta Densu July · F) -->
-          <div class="filter-row chips-scroll" x-show="convenientDateOptions.length" x-cloak>
-            <span class="filter-row-label">วันที่สะดวก</span>
-            <div class="filter-chips chips-scroll">
+          <div class="filter-chips" x-show="filterRailTab==='convenientDate'" x-cloak>
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterConvenientDate('')"
                   class="filter-chip"
@@ -892,12 +932,8 @@
                 </button>
               </template>
             </div>
-          </div>
 
-          <!-- ประเภทที่อยู่ (Meta · บ้านเดี่ยว / คอนโด) -->
-          <div class="filter-row chips-scroll" x-show="housingOptions.length" x-cloak>
-            <span class="filter-row-label">ที่อยู่</span>
-            <div class="filter-chips chips-scroll">
+          <div class="filter-chips" x-show="filterRailTab==='housing'" x-cloak>
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterHousing('')"
                   class="filter-chip"
@@ -921,12 +957,8 @@
                 </button>
               </template>
             </div>
-          </div>
 
-          <!-- ช่วงเวลาติดต่อ (Meta Densu July · G) -->
-          <div class="filter-row chips-scroll" x-show="contactTimeOptions.length" x-cloak>
-            <span class="filter-row-label">ช่วงเวลา</span>
-            <div class="filter-chips chips-scroll">
+          <div class="filter-chips" x-show="filterRailTab==='contactTime'" x-cloak>
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterContactTime('')"
                   class="filter-chip"
@@ -950,9 +982,13 @@
                 </button>
               </template>
             </div>
+            <div class="filter-rail-empty" x-show="filterRailTab==='convenientDate' && !convenientDateOptions.length" x-cloak>ไม่มีวันที่สะดวกในชุดนี้</div>
+            <div class="filter-rail-empty" x-show="filterRailTab==='housing' && !housingOptions.length" x-cloak>ไม่มีประเภทที่อยู่ในชุดนี้</div>
+            <div class="filter-rail-empty" x-show="filterRailTab==='contactTime' && !contactTimeOptions.length" x-cloak>ไม่มีช่วงเวลาในชุดนี้</div>
           </div>
-        </section>
+        </aside>
 
+        <div class="crm-list-main space-y-4">
         <!-- Search row -->
         <div class="flex items-center gap-3">
           <div class="relative flex-1">
@@ -1188,6 +1224,7 @@
           </div>
         </div>
 
+        </div><!-- /crm-list-main -->
       </div><!-- /list -->
     </div><!-- /!loading -->
   </div><!-- /apiUrl -->
@@ -1403,7 +1440,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '11 ก.ย. 69 v69 · Policy จากข้อความหลังนโยบายการกำหนดราคา';
+const CRM_BUILD       = '12 ก.ย. 69 v70 · ตัวกรองแท็บซ้าย';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1523,6 +1560,7 @@ function app() {
     /* ── Filters ── */
     search: '', filterSource: '', filterStatus: '', filterStatusGroup: null, filterPayment: '', filterActivity: '', filterHL: null,
     filterConvenientDate: '', filterContactTime: '', filterHousing: '',
+    filterRailTab: (function () { try { return localStorage.getItem('lgCrmRailTab') || 'status'; } catch (e) { return 'status'; } })(),
     activeQuickView: '',
     sortCol: 'lastNote', sortDir: 'desc', page: 1, pageSize: 25,
     _frozenRows: null,
@@ -2066,6 +2104,20 @@ function app() {
     },
     toggleSource(key)      { this._frozenRows=null; this._resetQuickView(); this.filterSource = this.filterSource===key ? '' : key; this.showMetaLegend = this.isMetaFilterActive(); this.page=1; },
     clearFilters()         { this._frozenRows=null; this.search=''; this.filterSource=''; this.filterStatus=''; this.filterStatusGroup=null; this.filterPayment=''; this.filterActivity=''; this.filterHL=null; this.filterConvenientDate=''; this.filterContactTime=''; this.filterHousing=''; this.activeQuickView=''; this.showMetaLegend=false; this.page=1; },
+    setFilterRailTab(id) {
+      this.filterRailTab = id;
+      try { localStorage.setItem('lgCrmRailTab', id); } catch (e) {}
+    },
+    filterRailOn(id) {
+      if (id === 'status') return !!(this.filterStatus || this.filterStatusGroup?.length);
+      if (id === 'payment') return !!this.filterPayment;
+      if (id === 'hl') return this.filterHL !== null;
+      if (id === 'activity') return !!this.filterActivity;
+      if (id === 'convenientDate') return !!this.filterConvenientDate;
+      if (id === 'housing') return !!this.filterHousing;
+      if (id === 'contactTime') return !!this.filterContactTime;
+      return false;
+    },
     setFilterStatus(val)   { this._frozenRows=null; this._resetQuickView(); this.filterStatus = this.filterStatus===val ? '' : val; this.page=1; },
     setFilterPayment(key)  { this._frozenRows=null; this._resetQuickView(); this.filterPayment = this.filterPayment===key ? '' : key; this.page=1; },
     setFilterActivity(key) { this._frozenRows=null; this._resetQuickView(); this.filterActivity = this.filterActivity===key ? '' : key; this.page=1; },
