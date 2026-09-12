@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v70</title>
+<title>LG Subscribe CRM · POND · v71</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1060,7 +1060,7 @@
                     </span>
                   </th>
                   <th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400">เบอร์โทร</th>
-                  <th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400 cursor-pointer select-none" @click="setSort('productType')">สินค้า</th>
+                  <th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400 w-[9.5rem] max-w-[9.5rem] cursor-pointer select-none" @click="setSort('productType')">สินค้า</th>
                   <th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400">ชำระเงิน</th>
                   <th class="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[.08em] text-slate-400 cursor-pointer select-none" @click="setSort('status')">
                     <span class="inline-flex items-center gap-1">Status
@@ -1121,7 +1121,9 @@
                     <td class="px-3 whitespace-nowrap">
                       <span class="font-semibold text-slate-800 tabular-nums tracking-tight text-[13.5px]" x-text="fmtPhone(c.phone)"></span>
                     </td>
-                    <td class="px-3 text-[13px] text-slate-600 whitespace-nowrap" x-text="c.productType||'—'"></td>
+                    <td class="px-3 text-[13px] text-slate-600 w-[9.5rem] max-w-[9.5rem]">
+                      <div class="truncate" :title="c.productType||''" x-text="c.productType||'—'"></div>
+                    </td>
                     <td class="px-3">
                       <span x-show="c.paymentChannel" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold" :style="paymentStyle(c.paymentChannel)" x-text="c.paymentChannel"></span>
                       <span x-show="!c.paymentChannel" class="text-[12px] text-slate-400">—</span>
@@ -1440,7 +1442,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '12 ก.ย. 69 v70 · ตัวกรองแท็บซ้าย';
+const CRM_BUILD       = '12 ก.ย. 69 v71 · ย่อชื่อสินค้าในตาราง';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
