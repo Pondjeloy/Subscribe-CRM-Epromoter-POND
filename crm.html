@@ -363,7 +363,7 @@
     <div class="flex items-center justify-between mb-5">
       <div>
         <div class="font-display font-bold text-[18px]">เลือกวันเวลานัดติดต่อกลับ</div>
-        <div class="text-[13px] text-slate-500 mt-0.5">ระบบจะใส่ข้อความในช่องบันทึก</div>
+        <div class="text-[13px] text-slate-500 mt-0.5">กดบันทึกแล้วขึ้นในประวัติการติดต่อทันที</div>
       </div>
       <button @click="cancelFu()" class="h-9 w-9 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-100 transition text-xl">×</button>
     </div>
@@ -372,7 +372,7 @@
       class="w-full h-11 px-4 rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:outline-none text-[14px] text-slate-700"/>
     <div x-show="fuErr" class="mt-3 text-[13px] text-rose-600" x-text="fuErr"></div>
     <div class="flex gap-3 mt-5">
-      <button class="flex-1 h-11 rounded-xl text-[14px] font-bold text-white transition" style="background:var(--accent)" @click="confirmFu()">ใส่ในช่องบันทึก</button>
+      <button type="button" class="flex-1 h-11 rounded-xl text-[14px] font-bold text-white transition" style="background:var(--accent)" @click="confirmFu()">บันทึก</button>
       <button class="h-11 px-5 rounded-xl text-[14px] font-semibold text-slate-600 bg-white ring-1 ring-slate-200 hover:bg-slate-50 transition" @click="cancelFu()">ยกเลิก</button>
     </div>
   </div>
@@ -1397,8 +1397,8 @@
                   <option :value="a.label" x-text="a.label"></option>
                 </template>
               </select>
-              <button @click="selectedActivity && addActivity(activityOpts.find(a=>a.label===selectedActivity)); selectedActivity=''"
-                :disabled="!selectedActivity"
+              <button type="button" @click="saveSelectedActivity()"
+                :disabled="!selectedActivity || noteSaving"
                 class="h-10 px-4 rounded-xl text-white text-[13px] font-bold transition disabled:opacity-40 shrink-0" style="background:var(--accent)">
                 บันทึก
               </button>
@@ -1442,7 +1442,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '13 ก.ย. 69 v72 · กันบันทึกกิจกรรมซ้ำ';
+const CRM_BUILD       = '13 ก.ย. 69 v73 · บันทึกกิจกรรมลงประวัติทันที';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2654,6 +2654,7 @@ function app() {
     },
 
     addActivity(a) {
+      if (!a) return;
       if (a.needsDateTime) {
         this._pendingFuActivity = a;
         this.fuDateTime = this._defaultFuDt();
@@ -2662,6 +2663,14 @@ function app() {
         return;
       }
       this._draftNote(a.label);
+      this.addNote();
+    },
+    saveSelectedActivity() {
+      const label = this.selectedActivity;
+      if (!label || this.noteSaving) return;
+      const a = this.activityOpts.find(x => x.label === label);
+      this.selectedActivity = '';
+      this.addActivity(a);
     },
     _draftNote(text) {
       const t = String(text||'').trim();
@@ -2686,6 +2695,7 @@ function app() {
       const label = (this._pendingFuActivity?.label||'นัดติดต่อกลับ')+': '+when;
       this.cancelFu();
       this._draftNote(label);
+      this.addNote();
     },
     cancelFu() { this.fuModal=false; this._pendingFuActivity=null; this.fuDateTime=''; this.fuErr=''; },
 
