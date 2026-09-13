@@ -1432,7 +1432,7 @@
           <div class="flex gap-2">
             <input type="text" x-model="newNote" @keydown.enter="addNote()" placeholder="เพิ่มบันทึกการติดต่อ…"
               class="flex-1 h-10 px-3.5 rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:outline-none text-[13.5px] placeholder:text-slate-400"/>
-            <button @click="addNote()" :disabled="!newNote.trim()"
+            <button @click="addNote()" :disabled="!newNote.trim() || _noteSaving"
               class="h-10 px-4 rounded-xl text-white text-[13px] font-bold transition disabled:opacity-40" style="background:var(--accent)">บันทึก</button>
           </div>
         </div>
@@ -2543,7 +2543,13 @@ function app() {
     _fireWriteAltRows(action, fields) {
       const alts = this.selectedCustomer?.altRows || [];
       if (!alts.length || !this.apiUrl) return;
+      const src = this.selectedCustomer.source;
+      const row = this.selectedCustomer.row;
+      const nSrc = normalizeSource(src);
       for (const a of alts) {
+        if (!a || !a.source || !a.row) continue;
+        // ห้ามยิงซ้ำแถวเดียวกับชีตหลัก
+        if (Number(a.row) === Number(row) && (a.source === src || normalizeSource(a.source) === nSrc)) continue;
         jsonpCall(this.apiUrl, {
           action,
           sheet: a.source,
@@ -2684,24 +2690,31 @@ function app() {
     cancelFu() { this.fuModal=false; this._pendingFuActivity=null; this.fuDateTime=''; this.fuErr=''; },
 
     async addNote() {
-      const text = this.newNote.trim(); if (!text) return;
+      const text = this.newNote.trim(); if (!text || this._noteSaving) return;
+      this._noteSaving = true;
       const now = new Date();
       let stamp = now.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'});
       if (!NOTE_DATE_ONLY) stamp += ' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
       this.newNote = '';
-      await this._syncNote(stamp+' — '+text);
+      try {
+        await this._syncNote(stamp+' — '+text);
+      } finally {
+        this._noteSaving = false;
+      }
     },
     async _writeJsonp(params) {
-      // ลอง 2 รอบเงียบๆ · soft-ok ถ้า timeout/script/เน็ต
+      // appendNote ห้าม retry — timeout มักแปลว่า Sheet เขียนสำเร็จแล้ว ยิงซ้ำจะซ้ำบรรทัด
+      // updateStatus / updateNotes ทับค่าได้ ลอง 2 รอบได้
+      const maxAttempt = params.action === 'appendNote' ? 1 : 2;
       let lastErr = null;
-      for (let attempt = 1; attempt <= 2; attempt++) {
+      for (let attempt = 1; attempt <= maxAttempt; attempt++) {
         try {
           const r = await jsonpCall(this.apiUrl, params, WRITE_TIMEOUT_MS);
           if (!r?.success) throw new Error(r?.error || 'API error');
           return { ok: true, soft: false, data: r };
         } catch (e) {
           lastErr = e;
-          if (!isWriteSoftOkErr(e) || attempt === 2) break;
+          if (!isWriteSoftOkErr(e) || attempt === maxAttempt) break;
           await new Promise(r => setTimeout(r, 800));
         }
       }

@@ -3,7 +3,8 @@
 //  Deploy: Web App | Execute as: Me | Anyone
 //  แก้แล้ว Redeploy: Manage Deployments → Edit → New version → Deploy
 //
-//  [แก้ไขล่าสุด] 'Lead LG Success': statusCol/picCol/notesCol เลื่อน
+//  [แก้ไขล่าสุด] appendNote กันบรรทัดซ้ำจาก JSONP timeout+retry
+//  [ก่อนหน้า] 'Lead LG Success': statusCol/picCol/notesCol เลื่อน
 //  จาก 8/9/10 → 7/8/9 เพราะโครงสร้างชีตมีคอลัมน์ระหว่าง
 //  Model Code กับ Status ลดลง (เหลือ Order No. / Total Rental
 //  Amount / Price Policy Name 3 คอลัมน์) ทำให้ Status ที่เคย
@@ -700,7 +701,13 @@ function appendNote(sheetName, rowNum, note) {
   if (opened.cfg.notesCol===undefined) return { success:false, error:'No config/notesCol for '+opened.name };
   var cell = opened.sheet.getRange(rowNum, opened.cfg.notesCol+1);
   var cur  = clean(cell.getValue());
-  cell.setValue(cur ? cur+'\n'+note : note);
+  var add  = clean(note);
+  if (!add) return { success:true, sheet:opened.name, skipped:true };
+  // กันซ้ำจาก JSONP timeout+retry: บรรทัดล่าสุดเหมือนกันแล้วไม่ append
+  var lines = cur ? String(cur).split(/\r?\n/) : [];
+  var last = lines.length ? clean(lines[lines.length - 1]) : '';
+  if (last === add) return { success:true, sheet:opened.name, skipped:true };
+  cell.setValue(cur ? cur + '\n' + add : add);
   return { success:true, sheet:opened.name };
 }
 
