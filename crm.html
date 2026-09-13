@@ -1432,7 +1432,7 @@
           <div class="flex gap-2">
             <input type="text" x-model="newNote" @keydown.enter="addNote()" placeholder="เพิ่มบันทึกการติดต่อ…"
               class="flex-1 h-10 px-3.5 rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:outline-none text-[13.5px] placeholder:text-slate-400"/>
-            <button @click="addNote()" :disabled="!newNote.trim() || _noteSaving"
+            <button type="button" @click="addNote()" :disabled="!newNote.trim() || noteSaving"
               class="h-10 px-4 rounded-xl text-white text-[13px] font-bold transition disabled:opacity-40" style="background:var(--accent)">บันทึก</button>
           </div>
         </div>
@@ -1442,7 +1442,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '12 ก.ย. 69 v71 · ย่อชื่อสินค้าในตาราง';
+const CRM_BUILD       = '13 ก.ย. 69 v72 · กันบันทึกกิจกรรมซ้ำ';
 const CACHE_SCHEMA    = 'v23';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1570,7 +1570,7 @@ function app() {
     /* ── Drawer ── */
     showDrawer: false, selectedCustomer: null,
     pendingStatus: '', savingStatus: false, saveMsg: '', saveOk: false,
-    sheetNotes: [], notesLoading: false, newNote: '',
+    sheetNotes: [], notesLoading: false, newNote: '', noteSaving: false,
     syncMsg: '', syncOk: null,
 
     /* ── Follow-up modal ── */
@@ -2690,8 +2690,8 @@ function app() {
     cancelFu() { this.fuModal=false; this._pendingFuActivity=null; this.fuDateTime=''; this.fuErr=''; },
 
     async addNote() {
-      const text = this.newNote.trim(); if (!text || this._noteSaving) return;
-      this._noteSaving = true;
+      const text = this.newNote.trim(); if (!text || this.noteSaving) return;
+      this.noteSaving = true;
       const now = new Date();
       let stamp = now.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'});
       if (!NOTE_DATE_ONLY) stamp += ' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2699,7 +2699,7 @@ function app() {
       try {
         await this._syncNote(stamp+' — '+text);
       } finally {
-        this._noteSaving = false;
+        this.noteSaving = false;
       }
     },
     async _writeJsonp(params) {
