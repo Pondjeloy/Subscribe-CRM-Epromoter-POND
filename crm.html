@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v80</title>
+<title>LG Subscribe CRM · POND · v81</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -318,7 +318,7 @@
 .crm-workspace .crm-list-main, .crm-workspace .filter-rail { min-width:0; }
 @media(max-width:900px) { .crm-workspace .crm-list-layout { grid-template-columns:minmax(0,1fr); } }
 /* Workspace v80: quiet surfaces, persistent navigation and compact contact table. */
-.crm-workspace { background:#eef0f2 !important; --accent:#25262a; --accent-tint:#f0f1f3; }
+.crm-workspace { background:#faf7f8 !important; --accent:#C8102E; --accent-tint:#fcecef; --accent-soft:#f9dfe5; }
   .crm-workspace .workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
   .crm-workspace .workspace-heading h1 { font-size:25px; font-weight:650; letter-spacing:-.6px; color:#202127; margin:0; }
   .crm-workspace .workspace-heading p { color:#858891; font-size:12px; margin-top:5px; }
@@ -329,31 +329,30 @@
   .crm-workspace .workspace-kpis strong { display:block; color:#25262a; font-size:25px; font-weight:550; font-variant-numeric:tabular-nums; margin:7px 0; }
   .crm-workspace .workspace-kpis span { color:#92969f; font-size:11px; }
   .crm-workspace .workspace-sources { margin-bottom:14px; }
-  .crm-workspace .workspace-sources > summary { cursor:pointer; font-size:12px; color:#757b85; padding:8px 0; }
-  .crm-workspace .workspace-sources[open] > summary { margin-bottom:8px; }
+  .crm-workspace .workspace-sources-title { font-size:14px; font-weight:650; color:var(--accent); margin:18px 0 12px; }
   .crm-workspace .workspace-brand { padding:22px 16px 24px; border-bottom:1px solid #e8e9ed; margin-bottom:16px; }
-  .crm-workspace .workspace-brand b { display:block; font-size:16px; letter-spacing:-.5px; color:#25262a; }
+  .crm-workspace .workspace-brand b { display:block; font-size:16px; letter-spacing:-.5px; color:var(--accent); }
   .crm-workspace .workspace-brand span { display:block; font-size:11px; color:#90949b; margin-top:5px; }
   .crm-workspace .navbar { border:0; border-bottom:1px solid #e9eaed; background:#fafafa; }
-  .crm-workspace .navbar .logo-box { background:#25262a; box-shadow:none; border-radius:9px; }
-  .crm-workspace .btn-reload { background:#25262a; box-shadow:none; }
+  .crm-workspace .navbar .logo-box { background:var(--accent); box-shadow:none; border-radius:9px; }
+  .crm-workspace .btn-reload { background:var(--accent); box-shadow:none; }
   .crm-workspace .desktop-table { border-radius:10px !important; box-shadow:none !important; border:1px solid #e7e8ec; }
   .crm-workspace .desktop-table thead tr { background:#fafafa !important; }
   .crm-workspace .desktop-table th { color:#92969e; font-size:10px; font-weight:550; letter-spacing:.04em; padding-top:13px; padding-bottom:13px; }
   .crm-workspace .desktop-table tbody td { padding-top:11px; padding-bottom:11px; border-bottom:1px solid #f0f1f3; }
   .crm-workspace .desktop-table tbody tr:hover { background:#f6f7f8 !important; }
   .crm-workspace .filter-rail-tab { font-weight:450; border-radius:7px; color:#656b76; padding:9px 10px; }
-  .crm-workspace .filter-rail-tab.is-active { background:#e8e9ed; box-shadow:none; font-weight:600; }
+  .crm-workspace .filter-rail-tab.is-active { background:var(--accent-tint); color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); font-weight:600; }
   .crm-workspace .filter-rail-panel { border-top:1px solid #e4e6eb; }
   .crm-workspace .filter-rail-panel .filter-chip { font-weight:450; border-radius:7px; font-size:12px; }
   .crm-workspace .qv-btn { border-radius:8px !important; padding:9px 12px !important; box-shadow:none !important; }
-  .crm-workspace .qv-btn-active { background:#f0f1f3 !important; border-color:#b9bec7 !important; color:#25262a !important; }
+  .crm-workspace .qv-btn-active { background:var(--accent-tint) !important; border-color:var(--accent) !important; color:var(--accent) !important; }
   .crm-workspace .drawer-panel { border-radius:14px !important; border:1px solid #e1e3e8; box-shadow:0 18px 70px #15192226 !important; }
 @media(min-width:1100px) {
  .crm-workspace > header { margin-left:236px; }
  .crm-workspace > main { margin-left:236px !important; margin-right:20px !important; max-width:none !important; padding:28px 24px !important; }
   .crm-workspace .crm-list-layout { display:block; }
-  .crm-workspace .filter-rail { position:fixed; left:0; top:0; bottom:0; width:236px; border-radius:0; border:0; border-right:1px solid #e1e3e8; background:#f6f7f9; z-index:55; overflow-y:auto; }
+  .crm-workspace .filter-rail { position:fixed; left:0; top:0; bottom:0; width:236px; border-radius:0; border:0; border-right:1px solid #e1e3e8; background:#fffafb; z-index:55; overflow-y:auto; }
   .crm-workspace .filter-rail-head { padding:10px 18px; font-size:10px; font-weight:500; }
   .crm-workspace .filter-rail-tabs { padding:0 12px 20px; gap:3px; }
   .crm-workspace .filter-rail-panel { margin:0 12px 18px; padding:14px 0; }
@@ -548,7 +547,7 @@
 <div><small>ปิดการขาย</small><strong x-text="workSummary.totalClosed"></strong><span>สถานะ Purchased</span></div>
 <div><small>แหล่งที่มา</small><strong x-text="sourceSummary.length"></strong><span>ช่องทางรับรายชื่อ</span></div>
 </section>
-<details class="workspace-sources"><summary>ดูแหล่งที่มาและรายละเอียดรายชื่อ</summary>
+<section class="workspace-sources" aria-label="การ์ดแหล่งที่มาของหลีด"><h2 class="workspace-sources-title">แหล่งที่มาของหลีด</h2>
       <!-- ── Metrics ── -->
       <section class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
         <!-- Total card -->
@@ -642,7 +641,7 @@
         </div>
       </section>
 
-</details>
+</section>
       <!-- ── Work Summary (collapsed by default) ── -->
       <section x-show="customers.length" class="rounded-2xl bg-white ring-1 ring-slate-200/70 overflow-hidden">
         <button type="button" @click="showWorkSummary = !showWorkSummary"
@@ -1447,7 +1446,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '27 ก.ย. 69 v80 · Workspace';
+const CRM_BUILD       = '27 ก.ย. 69 v81 · LG Subscribe';
 const CACHE_SCHEMA    = 'v24';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
