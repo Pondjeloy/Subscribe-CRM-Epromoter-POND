@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v77</title>
+<title>LG Subscribe CRM · POND · v78</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -114,6 +114,11 @@
     transition:all .15s; white-space:nowrap;
   }
   .filter-chip-count { font-variant-numeric:tabular-nums; font-size:11.5px; font-weight:700; padding:0 .375rem; border-radius:9999px; }
+
+  /* Date options stay one row per calendar day, without shrinking or overlapping. */
+  .filter-chips-date > .filter-chip { flex-shrink:0; min-width:0; white-space:normal; height:auto; padding-top:.5rem; padding-bottom:.5rem; }
+  .filter-chips-date > .filter-chip > span:first-child { min-width:0; overflow-wrap:anywhere; text-align:left; }
+  .filter-chips-date .filter-chip-count { flex-shrink:0; }
 
   /* ── Filter rail (left tabs) ── */
   .crm-list-layout { display:grid; grid-template-columns:248px minmax(0,1fr); gap:16px; align-items:start; }
@@ -841,7 +846,7 @@
               </template>
             </div>
 
-          <div class="filter-chips" x-show="filterRailTab==='convenientDate'" x-cloak>
+          <div class="filter-chips filter-chips-date" x-show="filterRailTab==='convenientDate'" x-cloak>
               <div class="filter-slot filter-slot-1">
                 <button @click="setFilterConvenientDate('')"
                   class="filter-chip"
@@ -1373,7 +1378,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '23 ก.ย. 69 v77 · รวมช่วงเวลา';
+const CRM_BUILD       = '27 ก.ย. 69 v78 · รวมวันที่สะดวก';
 const CACHE_SCHEMA    = 'v24';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1886,7 +1891,7 @@ function app() {
       else if (this.filterStatus) list = list.filter(c => c.status === this.filterStatus);
       if (this.filterPayment)  list = list.filter(c => this._matchPayment(c.paymentChannel, this.filterPayment));
       if (this.filterActivity) list = list.filter(c => c.parsedNotes.some(n => this._matchActivity(n.text, this.filterActivity)));
-      if (this.filterConvenientDate) list = list.filter(c => this._normField(c.convenientDate) === this.filterConvenientDate);
+      if (this.filterConvenientDate) list = list.filter(c => this.convenientDateKey(c.convenientDate) === this.convenientDateKey(this.filterConvenientDate));
       if (this.filterContactTime) list = list.filter(c => this.contactTimeKey(c.contactTime) === this.filterContactTime);
       if (this.filterHousing) list = list.filter(c => this.housingLabel(c.housingType) === this.filterHousing);
       if (this.filterHL === 'ranked') list = list.filter(c => this.getHL(c) > 0);
@@ -1920,7 +1925,7 @@ function app() {
     get convenientDateOptions() {
       const counts = {};
       for (const c of this.customers) {
-        const v = this._normField(c.convenientDate);
+        const v = this.convenientDateKey(c.convenientDate);
         if (v) counts[v] = (counts[v] || 0) + 1;
       }
       return Object.entries(counts)
@@ -2112,16 +2117,27 @@ function app() {
       if (hm) return parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10);
       return 500;
     },
-    fmtFilterDate(s) {
-      const t = this._normField(s);
-      if (!t) return '—';
-      const m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if (!m) return t;
-      let d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
-      if (mo > 12 && d <= 12) { const tmp = mo; mo = d; d = tmp; }
+    convenientDateKey(value) {
+      const t = this._normField(value);
+      if (!t) return '';
+      let m = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?=$|[T\s])/);
+      let y, mo, d;
+      if (m) { y=+m[1]; mo=+m[2]; d=+m[3]; }
+      else {
+        m = t.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?=$|\s)/);
+        if (!m) return t;
+        d=+m[1]; mo=+m[2]; y=+m[3];
+        if (mo > 12 && d <= 12) [d, mo] = [mo, d];
+      }
       if (y >= 2500) y -= 543;
-      const be = y + 543;
-      return d + '/' + mo + '/' + String(be).slice(-2);
+      const date = new Date(y, mo-1, d);
+      if (date.getFullYear()!==y || date.getMonth()!==mo-1 || date.getDate()!==d) return t;
+      return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    },
+    fmtFilterDate(s) {
+      const key = this.convenientDateKey(s);
+      const m = key.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${+m[3]}/${+m[2]}/${String(+m[1]+543).slice(-2)}` : key || '—';
     },
     countWithConvenientDate() { return this.customers.filter(c => this._normField(c.convenientDate)).length; },
     countWithContactTime()    { return this.customers.filter(c => this._normField(c.contactTime)).length; },
