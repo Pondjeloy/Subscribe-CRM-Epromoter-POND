@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM · POND · v78</title>
+<title>LG Subscribe CRM · POND · v79</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -1378,7 +1378,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '27 ก.ย. 69 v78 · รวมวันที่สะดวก';
+const CRM_BUILD       = '27 ก.ย. 69 v79 · รวมกลุ่มวันสะดวก';
 const CACHE_SCHEMA    = 'v24';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2118,8 +2118,14 @@ function app() {
       return 500;
     },
     convenientDateKey(value) {
-      const t = this._normField(value);
+      const t = this._normField(value).replace(/_/g, ' ').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
       if (!t) return '';
+      // Sheets use underscores/spaces and optional parentheses for the same day group.
+      const group = t.replace(/[\s()（）]/g, '');
+      if (/^(?:วันธรรมดา(?:วันจันทร์-วันศุกร์|จันทร์-ศุกร์)?|(?:วัน)?จันทร์-(?:วัน)?ศุกร์)$/.test(group))
+        return 'วันธรรมดา (จันทร์ - ศุกร์)';
+      if (/^(?:วันหยุดสุดสัปดาห์(?:(?:วัน)?เสาร์-(?:วัน)?อาทิตย์)?|(?:วัน)?เสาร์-(?:วัน)?อาทิตย์)$/.test(group))
+        return 'วันหยุดสุดสัปดาห์ (เสาร์ - อาทิตย์)';
       let m = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?=$|[T\s])/);
       let y, mo, d;
       if (m) { y=+m[1]; mo=+m[2]; d=+m[3]; }
