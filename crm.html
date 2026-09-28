@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM Epromoter · POND · v86</title>
+<title>LG Subscribe CRM Epromoter · POND · v87</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -385,7 +385,7 @@
 .crm-workspace .navbar > .lg-subscribe-wordmark { grid-area:logo; }
 .crm-workspace .nav-title { font-weight:650; letter-spacing:.01em; }
 @media(max-width:640px) {
- .crm-workspace .navbar { grid-template-columns:132px minmax(0,1fr) 32px; grid-template-areas:"logo copy settings" "tabs tabs reload"; }
+ .crm-workspace .navbar { grid-template-columns:132px minmax(0,1fr) 32px 32px; grid-template-areas:"logo copy settings reload"; }
  .crm-workspace .navbar > .lg-subscribe-wordmark { width:128px; height:29px; }
  .crm-workspace .navbar > .lg-subscribe-wordmark img { width:138px; left:-5px; top:-11px; }
  .crm-workspace .nav-title { font-size:12px; }
@@ -481,10 +481,7 @@
       <div class="nav-sub">Epromoter <b>POND</b> · <span class="text-[var(--accent)] font-semibold" x-text="crmBuild"></span><span x-show="lastFetch"> · <span x-text="lastFetch"></span></span></div>
     </div>
     <div class="nav-spacer flex-1"></div>
-    <div class="tab-group">
-      <span class="tab active">รายชื่อลูกค้า</span>
-    </div>
-    <div class="nav-spacer flex-1"></div>
+
     <button type="button" class="btn-reload"
       :class="{ 'spinning is-busy': loading || softLoading }"
       @click.prevent.stop="reloadCustomers()"
@@ -1435,7 +1432,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '28 ก.ย. 69 v86 · LG Subscribe';
+const CRM_BUILD       = '28 ก.ย. 69 v87 · LG Subscribe';
 const CACHE_SCHEMA    = 'v24';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
