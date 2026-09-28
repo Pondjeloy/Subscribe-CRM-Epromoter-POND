@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>LG Subscribe CRM Epromoter · POND · v87</title>
+<title>LG Subscribe CRM Epromoter · POND · v88</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -400,6 +400,18 @@
 /* The supplied TikTok artwork has a checkerboard border; frame only its circular mark. */
 .crm-workspace .lead-brand-tiktok { border-radius:50%; background:#000; }
 .crm-workspace .lead-brand-tiktok img { position:absolute; width:126%; height:126%; max-width:none; left:-13%; top:-13%; object-fit:contain; }
+
+/* LG Subscribe red header with readable controls in every state. */
+.crm-workspace .navbar { background:#C8102E; border-bottom:1px solid #ab0d27; }
+.crm-workspace .navbar .nav-title { color:#fff; }
+.crm-workspace .navbar .nav-sub, .crm-workspace .navbar .nav-sub b, .crm-workspace .navbar .nav-sub span { color:#fff; }
+.crm-workspace .navbar .nav-sub { opacity:.88; }
+.crm-workspace .navbar .btn-reload { background:#fff; color:#b30e29; border:1px solid #fff; box-shadow:none; }
+.crm-workspace .navbar .btn-reload:hover { background:#fff0f3; }
+.crm-workspace .navbar .btn-icon, .crm-workspace .navbar .btn-text { color:#fff; border-color:rgba(255,255,255,.45); background:rgba(255,255,255,.08); }
+.crm-workspace .navbar .btn-icon svg, .crm-workspace .navbar .btn-text svg { color:inherit; }
+.crm-workspace .navbar .btn-icon:hover, .crm-workspace .navbar .btn-text:hover { background:rgba(255,255,255,.2); }
+.crm-workspace .navbar :is(button,a):focus-visible { outline:2px solid #fff; outline-offset:3px; }
 </style>
 </head>
 <body x-data="app()" x-init="init()" class="crm-workspace bg-[#fafafb] text-slate-900 min-h-screen">
@@ -1432,7 +1444,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '28 ก.ย. 69 v87 · LG Subscribe';
+const CRM_BUILD       = '28 ก.ย. 69 v88 · LG Subscribe';
 const CACHE_SCHEMA    = 'v24';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
