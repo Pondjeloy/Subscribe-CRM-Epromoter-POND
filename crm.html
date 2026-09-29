@@ -319,17 +319,19 @@
 @media(max-width:900px) { .crm-workspace .crm-list-layout { grid-template-columns:minmax(0,1fr); } }
 /* Workspace v80: quiet surfaces, persistent navigation and compact contact table. */
 .crm-workspace { background:#faf7f8 !important; --accent:#C8102E; --accent-tint:#fcecef; --accent-soft:#f9dfe5; }
-  .crm-workspace .workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
+  .crm-workspace .workspace-top { display:grid; grid-template-columns:minmax(168px,210px) minmax(0,1fr); gap:8px 22px; align-items:start; margin-bottom:14px; }
+  .crm-workspace .workspace-heading { display:block; margin:0; }
   .crm-workspace .workspace-heading h1 { font-size:25px; font-weight:650; letter-spacing:-.6px; color:#202127; margin:0; }
   .crm-workspace .workspace-heading p { color:#858891; font-size:12px; margin-top:5px; }
+  @media(max-width:900px) { .crm-workspace .workspace-top { grid-template-columns:minmax(0,1fr); } }
   .crm-workspace .workspace-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); background:white; border:1px solid #e7e8ec; border-radius:12px; margin-bottom:14px; }
   .crm-workspace .workspace-kpis > div { padding:14px 22px; border-right:1px solid #eeeef1; }
   .crm-workspace .workspace-kpis > div:last-child { border:0; }
   .crm-workspace .workspace-kpis small { display:block; color:#777c85; font-size:12px; }
   .crm-workspace .workspace-kpis strong { display:block; color:#25262a; font-size:25px; font-weight:550; font-variant-numeric:tabular-nums; margin:7px 0; }
   .crm-workspace .workspace-kpis span { color:#92969f; font-size:11px; }
-  .crm-workspace .workspace-sources { margin-bottom:14px; }
-  .crm-workspace .workspace-sources-title { font-size:14px; font-weight:650; color:var(--accent); margin:18px 0 12px; }
+  .crm-workspace .workspace-sources { margin:0; min-width:0; }
+  .crm-workspace .workspace-sources-title { font-size:14px; font-weight:650; color:var(--accent); margin:2px 0 10px; }
   .crm-workspace .workspace-brand { padding:22px 16px 24px; border-bottom:1px solid #e8e9ed; margin-bottom:16px; }
   .crm-workspace .workspace-brand b { display:block; font-size:16px; letter-spacing:-.5px; color:var(--accent); }
   .crm-workspace .workspace-brand span { display:block; font-size:11px; color:#90949b; margin-top:5px; }
@@ -521,7 +523,7 @@
 
 <!-- ═══ MAIN ═══ -->
 <main x-show="isLoggedIn" x-cloak class="mx-auto max-w-[1500px] px-5 py-5 space-y-5">
-<div class="workspace-heading"><div><h1>รายชื่อลูกค้า</h1><p>จัดการการติดต่อ ติดตามงาน และดูข้อมูลลูกค้าในที่เดียว</p></div></div>
+
 
 
   <!-- No URL -->
@@ -585,6 +587,8 @@
     <div x-show="!loading || customers.length">
 
 
+<div class="workspace-top">
+<div class="workspace-heading"><div><h1>รายชื่อลูกค้า</h1><p>จัดการการติดต่อ ติดตามงาน และดูข้อมูลลูกค้าในที่เดียว</p></div></div>
 <section class="workspace-sources" aria-label="การ์ดแหล่งที่มาของหลีด"><h2 class="workspace-sources-title">แหล่งที่มาของหลีด</h2>
       <!-- ── Metrics ── -->
       <section class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
@@ -643,86 +647,7 @@
       </section>
 
 </section>
-      <!-- ── Work Summary (collapsed by default) ── -->
-      <section x-show="customers.length" class="rounded-2xl bg-white ring-1 ring-slate-200/70 overflow-hidden">
-        <button type="button" @click="showWorkSummary = !showWorkSummary"
-          class="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-slate-50/80 transition">
-          <div class="min-w-0">
-            <div class="text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">สรุปการทำงาน</div>
-            <div class="text-[13px] text-slate-500 mt-0.5 truncate">
-              ปิดการขาย <span class="font-bold text-slate-700 tabular-nums" x-text="workSummary.totalClosed"></span> รายการ
-              <span class="text-slate-400">· กดเพื่อ<span x-text="showWorkSummary ? 'ซ่อน' : 'ดูรายละเอียด'"></span></span>
-            </div>
-          </div>
-          <span class="shrink-0 h-8 w-8 grid place-items-center rounded-full bg-slate-100 text-slate-500 text-sm font-bold transition"
-                :class="showWorkSummary ? 'rotate-180' : ''">▼</span>
-        </button>
-        <div x-show="showWorkSummary" x-transition.opacity.duration.200ms class="px-4 pb-4 border-t border-slate-100">
-        <div class="text-[12px] text-slate-400 pt-3 mb-3">นับจาก Status Purchased เท่านั้น</div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Lead ranking -->
-          <div class="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/70 p-3.5">
-            <div class="text-[12px] font-bold text-slate-700 mb-3">🏆 ช่องทาง Lead ปิดได้มากสุด</div>
-            <div x-show="!workSummary.sources.length" class="text-[12px] text-slate-400 text-center py-6">ยังไม่มีข้อมูล</div>
-            <div class="space-y-2.5">
-              <template x-for="(row, idx) in workSummary.sources" :key="row.key">
-                <div class="flex items-start gap-2">
-                  <span class="w-5 text-[11px] font-bold text-slate-400 tabular-nums pt-0.5" x-text="idx+1"></span>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                      <span class="text-[13px] font-semibold text-slate-700 truncate" x-text="row.label"></span>
-                      <span class="text-[12px] font-bold tabular-nums shrink-0" style="color:var(--accent)" x-text="row.count"></span>
-                    </div>
-                    <div class="summary-rank-bar"><div class="summary-rank-fill" :style="'width:' + row.barPct + '%'"></div></div>
-                    <div class="text-[10.5px] text-slate-400 mt-1 tabular-nums" x-text="row.rate+'% จากหลีด '+row.total+' รายการ'"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-          <!-- Product ranking -->
-          <div class="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/70 p-3.5">
-            <div class="text-[12px] font-bold text-slate-700 mb-3">📦 สินค้าขายดีสุด</div>
-            <div x-show="!workSummary.products.length" class="text-[12px] text-slate-400 text-center py-6">ยังไม่มีข้อมูล</div>
-            <div class="space-y-2.5">
-              <template x-for="(row, idx) in workSummary.products" :key="row.key">
-                <div class="flex items-start gap-2">
-                  <span class="w-5 text-[11px] font-bold text-slate-400 tabular-nums pt-0.5" x-text="idx+1"></span>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                      <span class="text-[13px] font-semibold text-slate-700 truncate" x-text="row.label"></span>
-                      <span class="text-[12px] font-bold tabular-nums shrink-0" style="color:var(--accent)" x-text="row.count"></span>
-                    </div>
-                    <div class="summary-rank-bar"><div class="summary-rank-fill" :style="'width:' + row.barPct + '%'"></div></div>
-                    <div class="text-[10.5px] text-slate-400 mt-1 tabular-nums" x-text="row.pct+'% ของยอดปิดการขาย'"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-          <!-- Payment ranking -->
-          <div class="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/70 p-3.5">
-            <div class="text-[12px] font-bold text-slate-700 mb-3">💳 ชำระเงินได้มากสุด</div>
-            <div x-show="!workSummary.payments.length" class="text-[12px] text-slate-400 text-center py-6">ยังไม่มีข้อมูล</div>
-            <div class="space-y-2.5">
-              <template x-for="(row, idx) in workSummary.payments" :key="row.key">
-                <div class="flex items-start gap-2">
-                  <span class="w-5 text-[11px] font-bold text-slate-400 tabular-nums pt-0.5" x-text="idx+1"></span>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                      <span class="text-[13px] font-semibold text-slate-700 truncate" x-text="row.label"></span>
-                      <span class="text-[12px] font-bold tabular-nums shrink-0" style="color:var(--accent)" x-text="row.count"></span>
-                    </div>
-                    <div class="summary-rank-bar"><div class="summary-rank-fill" :style="'width:' + row.barPct + '%'"></div></div>
-                    <div class="text-[10.5px] text-slate-400 mt-1 tabular-nums" x-text="row.pct+'% ของยอดปิดการขาย'"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-        </div>
-      </section>
+</div>
 
       <!-- Quick Views -->
       <section class="workspace-quick rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
@@ -1447,7 +1372,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '28.09.2026.V91';
+const CRM_BUILD       = '29.09.2026.V92';
 const CACHE_SCHEMA    = 'v24';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
