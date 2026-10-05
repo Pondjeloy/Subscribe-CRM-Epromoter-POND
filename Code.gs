@@ -875,10 +875,25 @@ function normalizeKey(v) {
   return clean(v).replace(/[​-‍﻿]/g,'').replace(/\s+/g,'').toUpperCase();
 }
 
+// WUTTICHAI.N เป็นคนละคนกับ POND — ไม่ดึงเข้า CRM POND
+function isWuttichaiN(key) {
+  return /WUTTICHAI\.?N/.test(key) && !/WUTTICHAI\.?P/.test(key);
+}
+
+// POND กับ WUTTICHAI / WUTTICHAI.P / WUTTICHAI P. เป็นชื่อเดียวกัน
+function isPondName(key) {
+  if (!key) return false;
+  if (key.indexOf('POND') !== -1) return true;
+  if (isWuttichaiN(key)) return false;
+  return key.indexOf('WUTTICHAI') !== -1;
+}
+
 function isPromoter(v, promoter) {
   var want = normalizeKey(promoter || PROMOTER);
   var key  = normalizeKey(v);
   if (!key || !want) return false;
+  // ดึงทั้งแถวที่คอลัมน์ Epromoter เขียน POND และที่เขียน WUTTICHAI
+  if (want === 'POND' && isPondName(key)) return true;
   if (key.indexOf(want) !== -1) return true;
   if (want === 'PAIRAT' && key.indexOf('PIRAT') !== -1) return true;
   if (want === 'PIRAT' && key.indexOf('PAIRAT') !== -1) return true;

@@ -1379,8 +1379,8 @@
 </div>
 
 <script>
-const CRM_BUILD       = '04.10.2026.V96';
-const CACHE_SCHEMA    = 'v26';
+const CRM_BUILD       = '05.10.2026.V97';
+const CACHE_SCHEMA    = 'v27';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
 const LOGIN_SESSION_KEY = 'lgCrmLoggedIn';
@@ -1483,6 +1483,30 @@ function dedupeCustomersByPhone(list) {
   for (const c of (list||[])) (META_PAIR[c.source] ? meta : rest).push(c);
   let id = 1;
   return dedupeMetaOnly(meta).concat(rest).map(c => ({...c, id: id++}));
+}
+// POND กับ WUTTICHAI เป็นคนเดียวกัน — รวมผล getCustomers สองชื่อ กันแถวซ้ำ
+function mergePromoterPayloads(payloads) {
+  const seen = new Set();
+  const data = [];
+  const sheetsFound = {};
+  let ms = 0;
+  for (const json of payloads) {
+    if (!json) continue;
+    ms = Math.max(ms, Number(json.ms) || 0);
+    Object.assign(sheetsFound, json.sheetsFound || {});
+    for (const c of json.data || []) {
+      const key = [c.source, c.row, c.phone, c.name, c.orderNo].join('|');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      data.push(c);
+    }
+  }
+  const sourceCounts = {};
+  for (const c of data) {
+    const s = c.source || '';
+    if (s) sourceCounts[s] = (sourceCounts[s] || 0) + 1;
+  }
+  return { data, sourceCounts, rawCount: data.length, sheetsFound, ms };
 }
 const HL_KEY            = 'lgDashHL';
 const PROMOTER          = 'POND';
@@ -1829,14 +1853,32 @@ function app() {
           try {
             // รอบแรก 60s · รอบถัดไป 90s (Apps Script cold start + Sheet ใหญ่)
             const tmo = attempt === 1 ? 60000 : 90000;
-            const json = await jsonpCall(apiUrl, {action:'getCustomers', promoter:PROMOTER}, tmo);
+            // ชื่อในชีตเขียนทั้ง POND และ WUTTICHAI — ดึงทั้งสองชุดมาแสดงในรายชื่อเดียวกัน
+            const fetchNames = PROMOTER === 'POND' ? ['POND', 'WUTTICHAI'] : [PROMOTER];
+            const settled = await Promise.allSettled(fetchNames.map(name =>
+              jsonpCall(apiUrl, {action:'getCustomers', promoter:name}, tmo)
+            ));
             if (myGen !== this._fetchGen) return;
-            if (!json || !json.success) throw new Error((json && json.error) || 'API error');
+            const callErr = (r) => r.status === 'rejected'
+              ? (r.reason && r.reason.message)
+              : ((r.value && r.value.error) || 'API error');
+            const pondOk = settled[0].status === 'fulfilled' && settled[0].value && settled[0].value.success;
+            if (!pondOk) throw new Error(callErr(settled[0]) || 'API error');
+            const extraOk = settled.length < 2 || (settled[1].status === 'fulfilled' && settled[1].value && settled[1].value.success);
+            if (!extraOk && attempt < attempts) {
+              const extraMsg = String(callErr(settled[1]) || '');
+              if (/timeout|หมดเวลา|โหลด Script|Failed|Network|network/i.test(extraMsg)) throw new Error(extraMsg);
+            }
+            const ok = [settled[0].value];
+            if (extraOk && settled.length > 1) ok.push(settled[1].value);
+            const fail = extraOk ? [] : [fetchNames[1] + ': ' + callErr(settled[1])];
+            const json = ok.length === 1 ? ok[0] : mergePromoterPayloads(ok);
             const raw = dedupeCustomersByPhone(json.data || []);
             this.sheetsFound = json.sheetsFound || null;
             this.sortCol = 'lastNote'; this.sortDir = 'desc'; this.page = 1;
             const n = new Date();
             let ts = String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+' น.';
+            if (PROMOTER === 'POND') ts += fail.length ? ' · WUTTICHAI ยังไม่ครบ' : ' · POND+WUTTICHAI';
             if (json.rawCount != null && json.rawCount !== raw.length) ts += ' · raw ' + json.rawCount;
             if (json.ms != null) ts += ' · ' + Math.round(json.ms/1000) + 's';
             if (attempt > 1) ts += ' · retry ' + attempt;
