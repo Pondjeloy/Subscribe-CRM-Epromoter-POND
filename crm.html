@@ -1379,7 +1379,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '12.10.2026.V98';
+const CRM_BUILD       = '12.10.2026.V99';
 const CACHE_SCHEMA    = 'v27';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -2490,6 +2490,63 @@ function app() {
       this._notesLoadGen = (this._notesLoadGen || 0) + 1; // ยกเลิก load ค้าง
     },
 
+    // ทุกแถวที่เบอร์เดียวกัน ทั้งการ์ดที่ยังแยกอยู่ และแถว Meta ที่ถูกยุบรวม
+    _samePhoneCustomers(customer) {
+      const key = phoneKey(customer && customer.phone);
+      if (!key) return customer ? [customer] : [];
+      const list = this.customers.filter(c => phoneKey(c.phone) === key);
+      return list.length ? list : [customer];
+    },
+    _noteTargets(customer) {
+      const seen = new Set();
+      const out = [];
+      const push = (source, row) => {
+        if (!source || row == null || row === '') return;
+        const id = normalizeSource(source) + '|' + Number(row);
+        if (seen.has(id)) return;
+        seen.add(id);
+        out.push({ source, row: Number(row) });
+      };
+      for (const c of this._samePhoneCustomers(customer)) {
+        push(c.source, c.row);
+        for (const a of (c.altRows || [])) push(a.source, a.row);
+      }
+      return out;
+    },
+    _rowKey(source, row) {
+      return normalizeSource(source) + '|' + Number(row);
+    },
+    _appendEntryLocal(c, entry) {
+      const lines = String(c.notes || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length && lines[lines.length - 1] === entry) return false;
+      c.notes = lines.concat([entry]).join('\n');
+      c.parsedNotes = this._parseNotes(c.notes);
+      return true;
+    },
+    _mirrorActivityLocal(entry) {
+      const cur = this.selectedCustomer;
+      const key = phoneKey(cur && cur.phone);
+      if (!key || !entry) return 0;
+      let n = 0;
+      for (const c of this.customers) {
+        if (c.id === cur.id) continue;
+        if (phoneKey(c.phone) !== key) continue;
+        if (this._appendEntryLocal(c, entry)) n++;
+      }
+      if (n) this._persistCache();
+      return n;
+    },
+    _writeNoteRows(targets, action, fields) {
+      for (const t of targets) {
+        this._writeJsonp({
+          action,
+          sheet: t.source,
+          row: t.row,
+          promoter: PROMOTER,
+          ...fields
+        });
+      }
+    },
     // ยิงเขียนชีตรองแบบไม่รอ (ไม่บล็อก UI / ไม่ทำให้ขึ้น error)
     _fireWriteAltRows(action, fields) {
       const alts = this.selectedCustomer?.altRows || [];
@@ -2688,39 +2745,75 @@ function app() {
       this.sheetNotes = [entry, ...this.sheetNotes];
       const raw = [...this.sheetNotes].reverse().join('\n');
       this._syncNotes(raw, true);
+      this._mirrorActivityLocal(entry);
 
       const src = this.selectedCustomer.source;
       const row = this.selectedCustomer.row;
+      const targets = this._noteTargets(this.selectedCustomer);
+      const primary = this._rowKey(src, row);
       const res = await this._writeJsonp({
         action:'appendNote', sheet:src, row:row, note:entry, promoter:PROMOTER
       });
-      this._fireWriteAltRows('appendNote', { note: entry });
+      this._writeNoteRows(
+        targets.filter(t => this._rowKey(t.source, t.row) !== primary),
+        'appendNote',
+        { note: entry }
+      );
+      const dupMsg = targets.length > 1 ? ' · ' + targets.length + ' หลีดเบอร์เดียวกัน' : '';
       // ไม่โชว์ "โหลด Script ไม่ได้ / Deploy Anyone" — soft-ok = บันทึกสำเร็จ
       if (res.ok) {
-        this.syncMsg = '✅ บันทึกขึ้น Sheet แล้ว';
+        this.syncMsg = '✅ บันทึกขึ้น Sheet แล้ว' + dupMsg;
         this.syncOk = true;
       } else {
         // กรณี error จริงๆ (ไม่ใช่เน็ต/script) — ข้อความสั้น ไม่โชว์ technical
-        this.syncMsg = '✅ บันทึกบนจอแล้ว';
+        this.syncMsg = '✅ บันทึกบนจอแล้ว' + dupMsg;
         this.syncOk = true;
       }
       setTimeout(()=>{ this.syncMsg=''; this.syncOk=null; }, 3000);
     },
     async deleteNote(idx) {
+      const removed = String(this.sheetNotes[idx] || '').trim();
       const remaining = this.sheetNotes.filter((_,i) => i!==idx);
       const raw = [...remaining].reverse().join('\n');
       this._notesDirty = true;
       this._notesLoadGen = (this._notesLoadGen || 0) + 1;
       this.sheetNotes = remaining;
       this._syncNotes(raw, true);
+      const src = this.selectedCustomer.source;
+      const row = this.selectedCustomer.row;
       const res = await this._writeJsonp({
         action:'updateNotes',
-        sheet:this.selectedCustomer.source,
-        row:this.selectedCustomer.row,
+        sheet:src,
+        row:row,
         notes:raw,
         promoter:PROMOTER
       });
-      this._fireWriteAltRows('updateNotes', { notes: raw });
+      const seen = new Set([this._rowKey(src, row)]);
+      const writeReplace = (source, r, notes) => {
+        const id = this._rowKey(source, r);
+        if (!source || !r || seen.has(id)) return;
+        seen.add(id);
+        this._writeJsonp({ action:'updateNotes', sheet:source, row:r, notes, promoter:PROMOTER });
+      };
+      for (const a of (this.selectedCustomer.altRows || [])) writeReplace(a.source, a.row, raw);
+      const key = phoneKey(this.selectedCustomer.phone);
+      if (key && removed) {
+        let changed = false;
+        for (const c of this.customers) {
+          if (c.id === this.selectedCustomer.id) continue;
+          if (phoneKey(c.phone) !== key) continue;
+          const lines = String(c.notes || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          const next = lines.filter(l => l !== removed);
+          if (next.length === lines.length) continue;
+          const sibRaw = next.join('\n');
+          c.notes = sibRaw;
+          c.parsedNotes = this._parseNotes(sibRaw);
+          changed = true;
+          writeReplace(c.source, c.row, sibRaw);
+          for (const a of (c.altRows || [])) writeReplace(a.source, a.row, sibRaw);
+        }
+        if (changed) this._persistCache();
+      }
       // ลบบนจอแล้ว — ไม่โชว์ error แดง
       if (!res.ok && !res.soft) {
         /* เงียบ — รายการถูกลบจาก UI แล้ว */
