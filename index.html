@@ -1379,7 +1379,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '05.10.2026.V97';
+const CRM_BUILD       = '12.10.2026.V98';
 const CACHE_SCHEMA    = 'v27';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
@@ -1535,7 +1535,7 @@ function app() {
     filterConvenientDate: '', filterContactTime: '', filterHousing: '',
     filterRailTab: (function () { try { return localStorage.getItem('lgCrmRailTab') || 'status'; } catch (e) { return 'status'; } })(),
     activeQuickView: '',
-    sortCol: 'lastNote', sortDir: 'desc', page: 1, pageSize: 25,
+    sortCol: 'row', sortDir: 'desc', page: 1, pageSize: 25,
     _frozenRows: null,
 
     /* ── Drawer ── */
@@ -1875,7 +1875,7 @@ function app() {
             const json = ok.length === 1 ? ok[0] : mergePromoterPayloads(ok);
             const raw = dedupeCustomersByPhone(json.data || []);
             this.sheetsFound = json.sheetsFound || null;
-            this.sortCol = 'lastNote'; this.sortDir = 'desc'; this.page = 1;
+            this.sortCol = 'row'; this.sortDir = 'desc'; this.page = 1;
             const n = new Date();
             let ts = String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+' น.';
             if (PROMOTER === 'POND') ts += fail.length ? ' · WUTTICHAI ยังไม่ครบ' : ' · POND+WUTTICHAI';
@@ -1957,9 +1957,15 @@ function app() {
       const col = this.sortCol, dir = this.sortDir === 'asc' ? 1 : -1;
       const numCols = ['id','row','age'];
       return list.sort((a,b) => {
-        if (this.filterHL === 'ranked' && col !== 'lastNote') {
+        if (this.filterHL === 'ranked' && col !== 'lastNote' && col !== 'row') {
           const hd = this.getHL(b) - this.getHL(a);
           if (hd) return hd;
+        }
+        // ลำดับชีต: แหล่งเดียวกันอยู่ด้วยกัน แถวล่างของชีต (หลีดใหม่) อยู่บน
+        if (col === 'row') {
+          const so = this._sourceOrder(a.source) - this._sourceOrder(b.source);
+          if (so) return so;
+          return (Number(a.row||0) - Number(b.row||0)) * dir;
         }
         if (col === 'lastNote') return (this._noteTimestamp(a) - this._noteTimestamp(b)) * dir;
         if (numCols.includes(col)) return (Number(a[col]||0) - Number(b[col]||0)) * dir;
@@ -2080,13 +2086,14 @@ function app() {
       const mm = mTime ? parseInt(m[5], 10) : 59;
       return new Date(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10), hh, mm).getTime();
     },
-    _bumpCustomerList(customerId) {
-      const idx = this.customers.findIndex(c => c.id === customerId);
-      if (idx >= 0) this.customers[idx]._lastTouch = Date.now();
+    _sourceOrder(src) {
+      const key = normalizeSource(src);
+      const i = this.sourceDefs.findIndex(s => s.key === key);
+      return i < 0 ? 999 : i;
+    },
+    // บันทึกหรือเปลี่ยนสถานะแล้วไม่ย้ายแถว — รายชื่อค้างตามลำดับชีต
+    _bumpCustomerList() {
       this._frozenRows = null;
-      this.sortCol = 'lastNote';
-      this.sortDir = 'desc';
-      this.page = 1;
     },
     _resetQuickView()      { this.activeQuickView=''; this.filterStatusGroup=null; },
     applyQuickView(id) {
@@ -2097,8 +2104,8 @@ function app() {
       this.filterConvenientDate=''; this.filterContactTime=''; this.filterHousing='';
       this.activeQuickView=id;
       if (id==='unset') this.filterStatus='__unset__';
-      else if (id==='followup') { this.filterStatusGroup=['Called','Follow up']; this.sortCol='lastNote'; this.sortDir='desc'; }
-      else if (id==='hot') { this.filterHL='ranked'; this.sortCol='lastNote'; this.sortDir='desc'; }
+      else if (id==='followup') this.filterStatusGroup=['Called','Follow up'];
+      else if (id==='hot') this.filterHL='ranked';
       else if (id==='docs') this.filterActivity='รอยื่นเอกสาร';
       this.page=1;
     },
