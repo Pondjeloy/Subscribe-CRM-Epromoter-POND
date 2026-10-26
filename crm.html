@@ -662,27 +662,6 @@
       </section>
     </div>
 
-      <!-- Quick Views -->
-      <section class="workspace-quick rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
-        <div class="flex items-center gap-2 mb-3 flex-wrap">
-          <span class="text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">Quick View</span>
-          <span class="text-[11px] text-slate-400">กดครั้งเดียว · กดซ้ำเพื่อยกเลิก</span>
-        </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <template x-for="qv in quickViewDefs" :key="qv.id">
-            <button @click="applyQuickView(qv.id)"
-              class="qv-btn text-left px-4 py-3 rounded-xl border transition-all"
-              :class="activeQuickView===qv.id ? 'qv-btn-active' : 'bg-slate-50/80 border-slate-200/80 hover:border-slate-300 hover:bg-white'">
-              <div class="flex items-center gap-2 mb-0.5">
-                <span class="qv-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path :d="qv.iconPath"></path></svg></span>
-                <span class="text-[13.5px] font-bold" :class="activeQuickView===qv.id ? 'text-[var(--accent)]' : 'text-slate-800'" x-text="qv.label"></span>
-              </div>
-              <div class="text-[11px] pl-[34px]" :class="activeQuickView===qv.id ? 'text-slate-600' : 'text-slate-400'" x-text="qv.desc"></div>
-            </button>
-          </template>
-        </div>
-      </section>
-
       <!-- ── List View ── -->
       <div class="crm-list-layout">
 
@@ -1390,7 +1369,7 @@
 </div>
 
 <script>
-const CRM_BUILD       = '26.10.2026.V102';
+const CRM_BUILD       = '26.10.2026.V103';
 const CACHE_SCHEMA    = 'v28';
 const NOTE_DATE_ONLY  = false;
 const LOGIN_PASSWORD    = 'pond1234';
